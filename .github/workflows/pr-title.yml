@@ -1,0 +1,66 @@
+name: PR title – Conventional Commits
+
+# Validates that every pull-request title follows the Conventional Commits
+# specification (https://www.conventionalcommits.org). Combined with a
+# branch-protection rule that requires "Squash and merge" the PR title becomes
+# the single commit landing on main — so the entire history stays conventional
+# and GitHub's auto-generated release notes group changes nicely by type.
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+
+permissions:
+  pull-requests: read
+
+jobs:
+  lint:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Allowed types. Mirrors the Conventional Commits spec plus a few
+          # common extras (perf, build, ci, revert) that show up in HA work.
+          types: |
+            feat
+            fix
+            docs
+            chore
+            refactor
+            perf
+            test
+            build
+            ci
+            revert
+            style
+          # Scope is optional but, when present, must be lowercase and one of
+          # these. Keeps the changelog tidy.
+          scopes: |
+            api
+            config
+            options
+            mdns
+            translations
+            docs
+            ci
+            release
+            deps
+          requireScope: false
+          # Subject (= text after the colon) rules: must not be empty, must
+          # not start uppercase, must not end with a period.
+          subjectPattern: ^(?![A-Z]).+[^.]$
+          subjectPatternError: |
+            The PR title subject ("the part after the colon") must start
+            lowercase and not end with a period. Examples:
+              feat(options): add per-field omit toggle
+              fix(api): convert kWh to Wh based on unit_of_measurement
+              docs: add language switcher
+          # Auto-comment on PRs whose title fails so contributors see why.
+          wip: true
