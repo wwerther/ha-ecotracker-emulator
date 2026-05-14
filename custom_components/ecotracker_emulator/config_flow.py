@@ -29,6 +29,20 @@ from .const import (
     SERVICE_NAME_PREFIX,
 )
 
+# Map each EcoTracker JSON field to a HA sensor `device_class` so the entity
+# picker only lists matching sensors. `None` = no filter (e.g. agePower is a
+# millisecond age and has no native device_class match).
+_FIELD_DEVICE_CLASS: dict[str, str | None] = {
+    "power": "power",
+    "powerAvg": "power",
+    "powerPhase1": "power",
+    "powerPhase2": "power",
+    "powerPhase3": "power",
+    "energyCounterIn": "energy",
+    "energyCounterOut": "energy",
+    "agePower": None,
+}
+
 # 12 hex chars, no separators (= 6-byte MAC / serial)
 _HEX12 = re.compile(r"^[0-9A-Fa-f]{12}$")
 
@@ -183,7 +197,12 @@ class EcotrackerOptionsFlow(config_entries.OptionsFlow):
                 else None,
             )
             schema_dict[entity_field] = EntitySelector(
-                EntitySelectorConfig(domain="sensor")
+                EntitySelectorConfig(
+                    domain="sensor",
+                    device_class=_FIELD_DEVICE_CLASS[key],
+                )
+                if _FIELD_DEVICE_CLASS.get(key)
+                else EntitySelectorConfig(domain="sensor")
             )
             schema_dict[
                 vol.Required(fallback_key, default=current_fallback)

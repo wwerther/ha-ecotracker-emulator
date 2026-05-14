@@ -97,7 +97,12 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 Resolved items, newest first. Keep the resolution note so we remember _why_ something was
 changed.
 
-### 2026-05-14- [x] 🟢 **Bilingual README.** HACS does not natively support multi-language READMEs (it
+### 2026-05-14
+- [x] 🟢 **Sensor picker filtered by device_class.** The options-flow entity selectors
+  now restrict the dropdown to sensors with the matching `device_class` (`power` for
+  `power`/`powerAvg`/`powerPhaseN`, `energy` for `energyCounterIn/Out`). `agePower`
+  stays unfiltered (no native device_class equivalent).
+- [x] 🟢 **Bilingual README.** HACS does not natively support multi-language READMEs (it
   only renders one file). Added an English `README.md` (the file HACS shows) plus a
   German `README.de.md`, with a language switcher at the top of each. Aligns with
   AGENTS.md ("documentation in English"); the German version is kept for the primary
