@@ -20,12 +20,6 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 
 ### 🟣 Spec compliance (vs. [`docs/api-spec.md`](docs/api-spec.md))
 
-- [ ] **Energy units are watt-hours, not kWh.** Per spec `energyCounterIn` /
-  `energyCounterOut` are in **Wh**. Current `DEFAULT_VALUES` look Wh-shaped (e.g.
-  `5502204.6` ≈ 5.5 MWh) but `README.md` / `info.md` document them as kWh. Either:
-  - Fix the user-facing docs to say "Wh", **and**
-  - Document that mapped HA sensors must be in Wh (or auto-convert from kWh in `api.py`
-    based on the source entity's `unit_of_measurement`).
 - [ ] **`agePower` is not in the official spec** but **is emitted by real devices** (see
   capture in `docs/api-spec.md`, value e.g. `496`, plausibly age of the last measurement
   in ms). Decision: **keep emulating it.** Open sub-tasks:
@@ -93,8 +87,12 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 Resolved items, newest first. Keep the resolution note so we remember _why_ something was
 changed.
 
-### 2026-05-14
-- [x] � **Removed phantom `reload` service.** `services.yaml` declared
+### 2026-05-14- [x] 🟣 **Auto-convert source units to spec units in `api.py`.** Mapped sensors are now
+  read with their `unit_of_measurement` and rescaled: power fields are normalised to
+  **W** (`mW`/`kW`/`MW` supported), energy counters to **Wh** (`kWh`/`MWh` supported).
+  Sensors without a unit – or with an unknown one – are passed through unchanged and
+  logged at debug level so the JSON output stays usable while mismatches remain
+  diagnosable. The README/docs already advertise Wh, so behaviour now matches.- [x] � **Removed phantom `reload` service.** `services.yaml` declared
   `ecotracker_emulator.reload` but never registered it via
   `hass.services.async_register`, so calling it would have failed. The integration
   card's built-in *Reload* button covers manual reloads, and the existing options-flow
