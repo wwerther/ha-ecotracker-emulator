@@ -73,8 +73,6 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 
 ### 🟢 Documentation & repo hygiene
 
-- [ ] `README.md` references a non-existent `DEVELOPMENT.md`. Either create it or link
-  `AGENTS.md` instead.
 - [ ] `info.md` describes `agePower` as "Lebensenergie (Wattsekunden)" – per real-device
   capture this is the **age of the last power reading in milliseconds**. Fix the
   description.
@@ -99,8 +97,16 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 Resolved items, newest first. Keep the resolution note so we remember _why_ something was
 changed.
 
-### 2026-05-14
-- [x] 🟠 **Options flow now maps every JSON field to a sensor / fallback.**
+### 2026-05-14- [x] 🟢 **Bilingual README.** HACS does not natively support multi-language READMEs (it
+  only renders one file). Added an English `README.md` (the file HACS shows) plus a
+  German `README.de.md`, with a language switcher at the top of each. Aligns with
+  AGENTS.md ("documentation in English"); the German version is kept for the primary
+  audience.- [x] � **README/info.md explain the actual purpose** (EcoFlow inverters require an
+  EcoTracker via local API + mDNS discovery, IP no longer manually configurable in the
+  EcoFlow app). Updated installation steps to match the new MAC-suffix / serial /
+  product-id flow, added link to `docs/api-spec.md`, dropped dead `DEVELOPMENT.md`
+  reference in favour of `AGENTS.md`.
+- [x] �🟠 **Options flow now maps every JSON field to a sensor / fallback.**
   `EcotrackerOptionsFlow` was just a stub. It now renders a form with one row per key in
   `DEFAULT_VALUES`: an `EntitySelector(domain="sensor")` (optional, can be cleared) plus
   a `NumberSelector` fallback. Results are written to `entry.options` under the

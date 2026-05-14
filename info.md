@@ -1,6 +1,19 @@
 # EcoTracker Emulator
 
-Emuliert einen EcoTracker Energiemonitor im Netzwerk, damit andere Geräte (z. B. ein Wechselrichter oder eine App) ihn als echten EcoTracker erkennen und die Messwerte abfragen können.
+Emuliert einen [everHome EcoTracker](https://everhome.cloud/en/developer/ecotracker)
+Energiemonitor im Netzwerk, damit andere Geräte (z. B. **EcoFlow-Wechselrichter**) ihn als
+echten EcoTracker erkennen und die Messwerte über die lokale API abfragen können.
+
+## Wozu?
+
+Aktuelle EcoFlow-Wechselrichter (PowerStream u. ä.) akzeptieren als externen Stromzähler
+nur noch **EcoTracker-Geräte über die lokale API** – ohne Cloud-Sync. Die EcoFlow-App
+lässt zudem die **IP-Adresse des Zählers nicht mehr manuell eintragen**; das Pairing
+läuft ausschließlich über **mDNS-Discovery**. Wer den Verbrauch / die Einspeisung schon
+in Home Assistant misst, kann ohne ein zusätzliches Hardware-EcoTracker-Gerät keine
+Messwerte an den Wechselrichter liefern. Diese Integration schließt die Lücke: sie gibt
+sich gegenüber der EcoFlow-App als EcoTracker aus und liefert die JSON-Payload aus
+beliebigen HA-Sensoren.
 
 ## Funktionsweise
 

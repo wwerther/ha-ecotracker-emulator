@@ -1,31 +1,74 @@
 # EcoTracker Emulator for Home Assistant
 
-Emuliert einen EcoTracker Energiemonitor über mDNS (`_everhome._tcp`) und einen HTTP-Endpunkt `/v1/json`.
+> 🌐 **Language / Sprache:** **English** · [Deutsch](README.de.md)
+
+Emulates an [everHome EcoTracker](https://everhome.cloud/en/developer/ecotracker)
+energy monitor: publishes the matching mDNS service (`_everhome._tcp`) and serves the
+expected JSON payload on `/v1/json` with energy data.
+
+## Why?
+
+Recent **EcoFlow inverters** (PowerStream and similar) only accept **EcoTracker devices
+via their local API** as an external power meter — no detour through a linked cloud
+account is possible anymore. On top of that, the EcoFlow app **no longer lets you enter
+the meter's IP address manually**; pairing is done **exclusively via mDNS discovery** on
+the local network.
+
+Anyone who already measures consumption / feed-in inside Home Assistant (Shelly 3EM,
+Tibber Pulse, smart meter integrations, etc.) is stuck: without a real EcoTracker device,
+the EcoFlow inverter receives no readings. This integration closes that gap:
+
+- It **impersonates an EcoTracker** towards the EcoFlow app (mDNS service, JSON API,
+  TXT records, service name `ecotracker-<MAC>` using the EcoTracker OUI `B4:3A:45`).
+- The **values come from arbitrary Home Assistant sensors**, mapped per JSON field via
+  the options flow — with a numeric fallback for the case a sensor is not yet reporting
+  a valid value.
+- The EcoFlow inverter can therefore use the consumption / feed-in measured in HA as its
+  control input **without buying additional hardware** or linking a cloud account.
 
 ## Installation
 
-1. Füge dieses Repository als HACS Custom Repository hinzu (Kategorie: Integration).
-2. Installiere die Integration "EcoTracker Emulator" über HACS.
-3. Starte Home Assistant neu.
-4. Gehe zu Einstellungen → Geräte & Dienste → Integration hinzufügen → "EcoTracker Emulator".
-5. Konfiguriere den mDNS-Dienstnamen (Standard: `ecotracker-B43A452249C9`).
+1. Add this repository as an HACS custom repository (category: Integration).
+2. Install the "EcoTracker Emulator" integration via HACS.
+3. Restart Home Assistant.
+4. Go to Settings → Devices & Services → Add Integration → "EcoTracker Emulator".
+5. Confirm or adjust the MAC suffix, serial and product ID (sensible defaults are
+   pre-filled — the MAC suffix intentionally starts with the EcoTracker OUI `B43A45`).
+6. Open the integration's **Options** afterwards and assign a sensor or a fixed fallback
+   value to each JSON field.
 
-## Funktionsweise
+## How it works
 
-- Die Integration veröffentlicht einen mDNS-Dienst (`_everhome._tcp`), der unter dem angegebenen Namen erreichbar ist.
-- Auf `http://<HA-IP>:8123/v1/json` wird eine JSON-Payload zurückgegeben.
-- Die Werte können später durch echte Sensor-Entitäten ersetzt werden (in Arbeit).
+- The integration publishes an mDNS service (`_everhome._tcp`) under the configured name
+  (`ecotracker-<MAC>`), including the `serial`, `productid` and `ip` TXT records.
+- `http://<HA-IP>:8123/v1/json` returns the EcoTracker-compatible JSON payload (fields:
+  `power`, `powerAvg`, `agePower`, `powerPhase1..3`, `energyCounterIn`,
+  `energyCounterOut`).
+- Energy counters are expected in **watt-hours (Wh)** to match the official spec — see
+  [`docs/api-spec.md`](docs/api-spec.md).
 
-## Unterstützte Plattformen
+## Known limitations
+
+- The HTTP API runs on the **Home Assistant port (default 8123)**, not on port 80.
+  Current EcoFlow clients accept that because the port is announced via the mDNS TXT
+  record — clients hard-coded to port 80 need a reverse proxy.
+- Only **one instance** can be configured per Home Assistant (the `/v1/json` path is
+  global).
+- Authentication is disabled (just like on the real device) — the endpoint is freely
+  readable on the local network.
+
+## Supported platforms
 
 - Home Assistant OS
 - Home Assistant Container
-- ...
+- Home Assistant Supervised / Core (anywhere `zeroconf` and HA's HTTP server run)
 
-## Entwicklung
+## Development
 
-Siehe [DEVELOPMENT.md](DEVELOPMENT.md)
+See [`AGENTS.md`](AGENTS.md) for setup, syncing to HAOS and coding conventions,
+[`docs/api-spec.md`](docs/api-spec.md) for the emulated spec including a real-device
+capture, and [`TODO.md`](TODO.md) for the current work-in-progress.
 
-## Lizenz
+## License
 
 MIT
