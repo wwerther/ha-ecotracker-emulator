@@ -13,10 +13,7 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 
 ### 🟠 Functional gaps (advertised features missing)
 
-- [ ] **Make mDNS metadata editable post-setup.** `serial`, `product_id` and the `MAC`
-  suffix are stored in `entry.data` (set during initial config flow). Allow editing them
-  via the options flow once the entity-mapping flow is built; today the user has to
-  delete and re-add the integration to change them.
+_(none currently open)_
 
 ### 🟣 Spec compliance (vs. [`docs/api-spec.md`](docs/api-spec.md))
 
@@ -28,12 +25,8 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
     `power` entity, falling back to a fixed value).
 - [ ] **Tariff counters missing.** `energyCounterInT1` and `energyCounterInT2`
   (Hoch-/Niedertarif) are part of the spec but not emulated. Per spec they are optional,
-  so omitting them by default is fine. Once the options flow exists, expose them as
-  optional fields (entity or fallback, plus an "off" choice that omits the key entirely).
-- [ ] **Optional fields should be omitable.** Spec says `powerPhaseN` and the tariff
-  counters can be absent (single-phase meters, meters without tariff). Today `api.py`
-  always emits every key. Add a per-field "not provided / omit" option so strict clients
-  see a realistic single-phase response.
+  so omitting them by default is fine. Once added, they should hook into the same
+  per-field omit toggle that already exists for the other fields.
 - [ ] **Discovery / fingerprint fidelity.** Real device returns a custom HTML 404 on every
   unknown path (`/`, `/favicon.ico`, ...) pointing at `/v1/json` and the everHome docs
   (see `docs/api-spec.md` → "Real-device capture"). Currently HA serves its own 404 for
@@ -87,7 +80,20 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 Resolved items, newest first. Keep the resolution note so we remember _why_ something was
 changed.
 
-### 2026-05-14- [x] 🟣 **Auto-convert source units to spec units in `api.py`.** Mapped sensors are now
+### 2026-05-14
+- [x] 🟠 **mDNS metadata editable post-setup (reconfigure flow).** The integration card
+  now exposes a *Reconfigure* entry (`async_step_reconfigure` in `config_flow.py`).
+  MAC suffix, serial, product ID and port can be changed in place, the form is pre-
+  filled with the current values, the entry title is updated to `ecotracker-<MAC>`,
+  and the entry is reloaded so the mDNS service is re-published with the new identity.
+  Sensor mappings stay untouched (those are still handled via the regular options flow).
+- [x] 🟣 **Optional fields can be omitted from the JSON.** Each field gained an *Omit*
+  checkbox in the options flow. When set and no usable sensor value is available, the
+  key is dropped from `/v1/json` entirely instead of falling back to the static number.
+  This covers the spec note that `powerPhaseN` (and later the tariff counters) may be
+  absent on single-phase / single-tariff meters. The default is *off*, so existing
+  setups keep emitting every key.
+- [x] 🟣 **Auto-convert source units to spec units in `api.py`.** Mapped sensors are now
   read with their `unit_of_measurement` and rescaled: power fields are normalised to
   **W** (`mW`/`kW`/`MW` supported), energy counters to **Wh** (`kWh`/`MWh` supported).
   Sensors without a unit – or with an unknown one – are passed through unchanged and

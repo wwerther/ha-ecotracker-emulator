@@ -10,6 +10,16 @@
           "product_id": "Produkt-ID",
           "port": "Port (Standard 8123)"
         }
+      },
+      "reconfigure": {
+        "title": "EcoTracker Emulator neu konfigurieren",
+        "description": "Aktualisiere die veröffentlichte mDNS-Identität. Der Dienst wird als `{prefix}<MAC>` neu publiziert; das MAC-Suffix sollte für beste Client-Kompatibilität weiterhin mit der EcoTracker-OUI `{oui}` beginnen. Sensor-Zuordnungen werden hier nicht geändert – nutze dafür den *Konfigurieren*-Button der Integration.",
+        "data": {
+          "mac_suffix": "MAC-Suffix (12 Hexzeichen, ohne Trenner)",
+          "serial": "Seriennummer (12 Hexzeichen)",
+          "product_id": "Produkt-ID",
+          "port": "Port (Standard 8123)"
+        }
       }
     },
     "error": {
@@ -20,32 +30,42 @@
     },
     "abort": {
       "already_configured": "Dieser Dienstname wird bereits verwendet.",
-      "single_instance_allowed": "Es kann nur eine Instanz des EcoTracker Emulators eingerichtet werden."
+      "single_instance_allowed": "Es kann nur eine Instanz des EcoTracker Emulators eingerichtet werden.",
+      "reconfigure_successful": "EcoTracker-Emulator-Metadaten aktualisiert.",
+      "reconfigure_unavailable": "Die Integration konnte nicht neu konfiguriert werden – Eintrag nicht gefunden."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "JSON-Felder auf Sensoren mappen",
-        "description": "Für jedes Feld der EcoTracker-`/v1/json`-Antwort kannst du einen Home-Assistant-Sensor wählen, dessen Zustand gemeldet wird. Wenn kein Sensor gesetzt ist – oder sein Zustand `unknown`/`unavailable` ist – wird der numerische Fallback verwendet. Energiezähler werden in Wattstunden (Wh) erwartet. Die Sensor-Auswahl ist nach passender `device_class` und Einheit vorgefiltert (W/kW für Leistung, Wh/kWh für Energie); aktiviere *Alle Sensoren zeigen*, um den Filter abzuschalten.",
+        "description": "Für jedes Feld der EcoTracker-`/v1/json`-Antwort kannst du einen Home-Assistant-Sensor wählen, dessen Zustand gemeldet wird. Wenn kein Sensor gesetzt ist – oder sein Zustand `unknown`/`unavailable` ist – wird der numerische Fallback verwendet (oder das Feld komplett weggelassen, wenn die jeweilige *Weglassen*-Checkbox aktiv ist). Energiezähler werden in Wattstunden (Wh) erwartet. Die Sensor-Auswahl ist nach passender `device_class` und Einheit vorgefiltert (W/kW für Leistung, Wh/kWh für Energie); aktiviere *Alle Sensoren zeigen*, um den Filter abzuschalten.",
         "data": {
           "show_all_sensors": "Alle Sensoren zeigen (Filter nach device_class / Einheit deaktivieren)",
           "power_entity": "power – Sensor",
           "power_fallback": "power – Fallback (W)",
+          "power_omit": "power – weglassen, wenn kein Sensorwert",
           "powerAvg_entity": "powerAvg – Sensor",
           "powerAvg_fallback": "powerAvg – Fallback (W)",
+          "powerAvg_omit": "powerAvg – weglassen, wenn kein Sensorwert",
           "agePower_entity": "agePower – Sensor",
           "agePower_fallback": "agePower – Fallback (ms)",
+          "agePower_omit": "agePower – weglassen, wenn kein Sensorwert",
           "powerPhase1_entity": "powerPhase1 – Sensor",
           "powerPhase1_fallback": "powerPhase1 – Fallback (W)",
+          "powerPhase1_omit": "powerPhase1 – weglassen, wenn kein Sensorwert",
           "powerPhase2_entity": "powerPhase2 – Sensor",
           "powerPhase2_fallback": "powerPhase2 – Fallback (W)",
+          "powerPhase2_omit": "powerPhase2 – weglassen, wenn kein Sensorwert",
           "powerPhase3_entity": "powerPhase3 – Sensor",
           "powerPhase3_fallback": "powerPhase3 – Fallback (W)",
+          "powerPhase3_omit": "powerPhase3 – weglassen, wenn kein Sensorwert",
           "energyCounterOut_entity": "energyCounterOut – Sensor",
           "energyCounterOut_fallback": "energyCounterOut – Fallback (Wh)",
+          "energyCounterOut_omit": "energyCounterOut – weglassen, wenn kein Sensorwert",
           "energyCounterIn_entity": "energyCounterIn – Sensor",
-          "energyCounterIn_fallback": "energyCounterIn – Fallback (Wh)"
+          "energyCounterIn_fallback": "energyCounterIn – Fallback (Wh)",
+          "energyCounterIn_omit": "energyCounterIn – weglassen, wenn kein Sensorwert"
         }
       }
     }

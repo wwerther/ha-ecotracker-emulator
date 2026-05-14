@@ -10,6 +10,16 @@
           "product_id": "Product ID",
           "port": "Port (default 8123)"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure EcoTracker Emulator",
+        "description": "Update the announced mDNS identity. The service is republished as `{prefix}<MAC>`; the MAC suffix should keep the EcoTracker OUI `{oui}` for best client compatibility. Sensor mappings are not changed here – use the integration's *Configure* button for those.",
+        "data": {
+          "mac_suffix": "MAC suffix (12 hex chars, no separators)",
+          "serial": "Serial (12 hex chars)",
+          "product_id": "Product ID",
+          "port": "Port (default 8123)"
+        }
       }
     },
     "error": {
@@ -20,32 +30,42 @@
     },
     "abort": {
       "already_configured": "This service name is already in use.",
-      "single_instance_allowed": "Only one EcoTracker Emulator instance can be configured."
+      "single_instance_allowed": "Only one EcoTracker Emulator instance can be configured.",
+      "reconfigure_successful": "EcoTracker Emulator metadata updated.",
+      "reconfigure_unavailable": "The integration could not be reconfigured – entry not found."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Map JSON fields to sensors",
-        "description": "For each field of the EcoTracker `/v1/json` response you can pick a Home Assistant sensor whose state will be served. If no sensor is set – or its state is unknown/unavailable – the numeric fallback is used. Energy counters are in watt-hours (Wh). The sensor pickers are pre-filtered by `device_class` and matching units (W/kW for power, Wh/kWh for energy); enable *Show all sensors* to disable that filter.",
+        "description": "For each field of the EcoTracker `/v1/json` response you can pick a Home Assistant sensor whose state will be served. If no sensor is set – or its state is unknown/unavailable – the numeric fallback is used (or the field is omitted entirely if its *Omit* checkbox is enabled). Energy counters are in watt-hours (Wh). The sensor pickers are pre-filtered by `device_class` and matching units (W/kW for power, Wh/kWh for energy); enable *Show all sensors* to disable that filter.",
         "data": {
           "show_all_sensors": "Show all sensors (disable device_class / unit filter)",
           "power_entity": "power – sensor",
           "power_fallback": "power – fallback (W)",
+          "power_omit": "power – omit when no sensor value",
           "powerAvg_entity": "powerAvg – sensor",
           "powerAvg_fallback": "powerAvg – fallback (W)",
+          "powerAvg_omit": "powerAvg – omit when no sensor value",
           "agePower_entity": "agePower – sensor",
           "agePower_fallback": "agePower – fallback (ms)",
+          "agePower_omit": "agePower – omit when no sensor value",
           "powerPhase1_entity": "powerPhase1 – sensor",
           "powerPhase1_fallback": "powerPhase1 – fallback (W)",
+          "powerPhase1_omit": "powerPhase1 – omit when no sensor value",
           "powerPhase2_entity": "powerPhase2 – sensor",
           "powerPhase2_fallback": "powerPhase2 – fallback (W)",
+          "powerPhase2_omit": "powerPhase2 – omit when no sensor value",
           "powerPhase3_entity": "powerPhase3 – sensor",
           "powerPhase3_fallback": "powerPhase3 – fallback (W)",
+          "powerPhase3_omit": "powerPhase3 – omit when no sensor value",
           "energyCounterOut_entity": "energyCounterOut – sensor",
           "energyCounterOut_fallback": "energyCounterOut – fallback (Wh)",
+          "energyCounterOut_omit": "energyCounterOut – omit when no sensor value",
           "energyCounterIn_entity": "energyCounterIn – sensor",
-          "energyCounterIn_fallback": "energyCounterIn – fallback (Wh)"
+          "energyCounterIn_fallback": "energyCounterIn – fallback (Wh)",
+          "energyCounterIn_omit": "energyCounterIn – omit when no sensor value"
         }
       }
     }

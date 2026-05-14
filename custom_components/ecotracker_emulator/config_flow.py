@@ -9,6 +9,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers.selector import (
+    BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
     NumberSelector,
@@ -111,6 +112,51 @@ class EcotrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_PRODUCT_ID: DEFAULT_PRODUCT_ID,
             CONF_PORT: MDNS_PORT,
         }
+        return await self._async_metadata_step(
+            step_id="user",
+            user_input=user_input,
+            defaults=defaults,
+            existing_entry=None,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ):
+        """Allow editing MAC suffix, serial, product ID and port post-setup.
+
+        Triggered from the integration card's *Reconfigure* menu. Re-uses the
+        same form/validation as the initial setup; on success the entry is
+        updated and reloaded so the mDNS service is republished with the new
+        identity.
+        """
+        entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+        if entry is None:
+            return self.async_abort(reason="reconfigure_unavailable")
+
+        defaults: dict[str, Any] = {
+            CONF_MAC_SUFFIX: entry.data.get(CONF_MAC_SUFFIX, _random_mac_suffix()),
+            CONF_SERIAL: entry.data.get(CONF_SERIAL, _random_serial()),
+            CONF_PRODUCT_ID: entry.data.get(CONF_PRODUCT_ID, DEFAULT_PRODUCT_ID),
+            CONF_PORT: entry.data.get(CONF_PORT, MDNS_PORT),
+        }
+        return await self._async_metadata_step(
+            step_id="reconfigure",
+            user_input=user_input,
+            defaults=defaults,
+            existing_entry=entry,
+        )
+
+    async def _async_metadata_step(
+        self,
+        *,
+        step_id: str,
+        user_input: dict[str, Any] | None,
+        defaults: dict[str, Any],
+        existing_entry: config_entries.ConfigEntry | None,
+    ):
+        """Shared validation/render path for initial setup and reconfigure."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -136,18 +182,30 @@ class EcotrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors[CONF_PORT] = "invalid_port"
 
             if not errors:
-                await self.async_set_unique_id(DOMAIN)
-                self._abort_if_unique_id_configured()
-
-                data = {
+                new_data = {
                     CONF_MAC_SUFFIX: mac_suffix,
                     CONF_SERIAL: serial,
                     CONF_PRODUCT_ID: product_id,
                     CONF_PORT: port,
                 }
+                title = f"{SERVICE_NAME_PREFIX}{mac_suffix}"
+
+                if existing_entry is not None:
+                    self.hass.config_entries.async_update_entry(
+                        existing_entry,
+                        data=new_data,
+                        title=title,
+                    )
+                    await self.hass.config_entries.async_reload(
+                        existing_entry.entry_id
+                    )
+                    return self.async_abort(reason="reconfigure_successful")
+
+                await self.async_set_unique_id(DOMAIN)
+                self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title=f"{SERVICE_NAME_PREFIX}{mac_suffix}",
-                    data=data,
+                    title=title,
+                    data=new_data,
                     options={
                         # Sensor mappings are filled in via the options flow.
                         **{f"{key}_entity": None for key in DEFAULT_VALUES},
@@ -155,6 +213,7 @@ class EcotrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             f"{key}_fallback": value
                             for key, value in DEFAULT_VALUES.items()
                         },
+                        **{f"{key}_omit": False for key in DEFAULT_VALUES},
                     },
                 )
 
@@ -162,7 +221,7 @@ class EcotrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             defaults = {**defaults, **user_input}
 
         return self.async_show_form(
-            step_id="user",
+            step_id=step_id,
             data_schema=_build_schema(defaults),
             errors=errors,
             description_placeholders={
@@ -185,17 +244,19 @@ class EcotrackerOptionsFlow(config_entries.OptionsFlow):
         show_all = bool(current.get(CONF_SHOW_ALL_SENSORS, False))
 
         if user_input is not None:
-            # Persist all entity / fallback pairs. Empty entity selections come
-            # back as missing keys; normalise to an explicit `None` so api.py's
-            # `options.get(...)` keeps working as before.
+            # Persist all entity / fallback / omit triples. Empty entity
+            # selections come back as missing keys; normalise to an explicit
+            # `None` so api.py's `options.get(...)` keeps working as before.
             new_options: dict[str, Any] = {
                 CONF_SHOW_ALL_SENSORS: bool(user_input.get(CONF_SHOW_ALL_SENSORS)),
             }
             for key in DEFAULT_VALUES:
                 entity_key = f"{key}_entity"
                 fallback_key = f"{key}_fallback"
+                omit_key = f"{key}_omit"
                 new_options[entity_key] = user_input.get(entity_key) or None
                 new_options[fallback_key] = user_input[fallback_key]
+                new_options[omit_key] = bool(user_input.get(omit_key))
             return self.async_create_entry(title="", data=new_options)
 
         schema_dict: dict[Any, Any] = {
@@ -206,8 +267,10 @@ class EcotrackerOptionsFlow(config_entries.OptionsFlow):
         for key, default_value in DEFAULT_VALUES.items():
             entity_key = f"{key}_entity"
             fallback_key = f"{key}_fallback"
+            omit_key = f"{key}_omit"
             current_entity = current.get(entity_key)
             current_fallback = current.get(fallback_key, default_value)
+            current_omit = bool(current.get(omit_key, False))
 
             entity_field = vol.Optional(
                 entity_key,
@@ -223,6 +286,9 @@ class EcotrackerOptionsFlow(config_entries.OptionsFlow):
             ] = NumberSelector(
                 NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any")
             )
+            schema_dict[
+                vol.Required(omit_key, default=current_omit)
+            ] = BooleanSelector()
 
         return self.async_show_form(
             step_id="init",

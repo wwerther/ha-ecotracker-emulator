@@ -90,6 +90,12 @@ class EcotrackerJsonView(HomeAssistantView):
                         unit = state.attributes.get("unit_of_measurement")
                         data[key] = _convert(key, raw, unit)
                         continue
+            # No usable sensor value. The user can choose between two
+            # behaviours per field via the options flow:
+            #   * `<key>_omit = True`  → drop the field from the JSON entirely
+            #   * otherwise            → emit the static fallback number
+            if options.get(f"{key}_omit", False):
+                continue
             data[key] = options.get(f"{key}_fallback", 0)
 
         return self.json(data)
