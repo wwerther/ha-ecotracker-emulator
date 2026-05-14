@@ -1,12 +1,12 @@
 {
   "domain": "ecotracker_emulator",
   "name": "EcoTracker Emulator",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "requirements": [],
   "dependencies": ["http", "network", "zeroconf"],
-  "codeowners": ["@dein_github_name"],
+  "codeowners": ["@wwerther"],
   "iot_class": "local_push",
   "config_flow": true,
-  "documentation": "https://github.com/dein_name/ha-ecotracker",
-  "issue_tracker": "https://github.com/dein_name/ha-ecotracker/issues"
+  "documentation": "https://github.com/wwerther/ha-ecotracker-emulator",
+  "issue_tracker": "https://github.com/wwerther/ha-ecotracker-emulator/issues"
 }

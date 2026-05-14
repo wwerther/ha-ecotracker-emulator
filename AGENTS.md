@@ -17,7 +17,7 @@ Please translate to English where needed and still German code is insight. Excep
 ## Repository Structure
 
 ```
-ha_ecotracker_emulator/             # Repository root
+ha-ecotracker-emulator/             # Repository root
 ├── custom_components/
 │   └── ecotracker_emulator/        # Integration directory – MUST match `domain` in manifest.json
 │       ├── __init__.py             # Setup/unload, mDNS publishing
