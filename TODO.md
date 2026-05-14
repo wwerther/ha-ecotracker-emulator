@@ -59,7 +59,7 @@ _(none currently open)_
 - [ ] `info.md` describes `agePower` as "Lebensenergie (Wattsekunden)" – per real-device
   capture this is the **age of the last power reading in milliseconds**. Fix the
   description.
-- [ ] Add a `LICENSE` file (README/info.md claim MIT, but no file present).
+- [x] Add a `LICENSE` file (README/info.md claim MIT, but no file present). ✅ added 2026-05-14
 - [ ] Add a `.gitignore` (Python/`__pycache__`, `.venv`, `.DS_Store`, etc.) – currently
   none in the repo.
 - [ ] `hacs.json` could declare `homeassistant` (minimum HA version) and
