@@ -53,6 +53,18 @@ EcoFlow-Wechselrichter keine Messwerte. Hier setzt diese Integration an:
 - Energiezähler werden in **Wattstunden (Wh)** erwartet – passend zur offiziellen Spec
   (siehe [`docs/api-spec.md`](docs/api-spec.md)).
 
+## Getestet mit
+
+Die Integration ist mit der folgenden Kombination produktiv im Einsatz. Rückmeldungen
+zu anderen Setups sind willkommen – bitte ein Issue mit deinen Versionen öffnen.
+
+| Komponente | Version |
+|------------|---------|
+| Home Assistant Core | **2026.5.1** |
+| EcoTracker-Emulationsprofil | **EcoTracker IR** (mDNS-Service `_everhome._tcp`, JSON `/v1/json`) |
+| EcoFlow-Wechselrichter | **Stream Ultra X** |
+| EcoFlow-Wechselrichter-Firmware | **V1.0.2.1** |
+
 ## Bekannte Einschränkungen
 
 - Die HTTP-API läuft auf dem **Home-Assistant-Port (Standard 8123)**, nicht auf Port 80.
@@ -62,6 +74,17 @@ EcoFlow-Wechselrichter keine Messwerte. Hier setzt diese Integration an:
   Pfad).
 - Authentifizierung ist deaktiviert (so wie beim echten Gerät) – der Endpunkt ist im
   lokalen Netz frei lesbar.
+- Die **EcoFlow-App zeigt den EcoTracker IR als „offline / getrennt“** an, solange der
+  gekoppelte Wechselrichter den Zähler **nicht aktiv verwendet**. Sobald der
+  Wechselrichter die Werte tatsächlich abruft und nutzt, erscheinen die Live-Telemetrie
+  und die Statusanzeige geht auf „verbunden“; sobald der Wechselrichter den Zähler
+  wieder ignoriert, springt die Kachel zurück auf „getrennt“. Die Kopplung selbst
+  bleibt davon unberührt und `/v1/json` antwortet weiterhin normal. Zum Vergleich: Der
+  Tibber Pulse wird in der App immer als verbunden angezeigt, weil die EcoFlow-App den
+  Pulse über die Tibber-Cloud anspricht und nicht über die lokale API – einen Weg, den
+  der Emulator nicht nachbilden kann. Die Anzeige ist also **eher ein „in-Benutzung“-
+  Indikator** als eine echte Erreichbarkeitsprüfung. Keine Lösung bekannt;
+  Rückmeldungen zu App-Versionen, in denen sich das anders verhält, gerne als Issue.
 
 ## Unterstützte Plattformen
 

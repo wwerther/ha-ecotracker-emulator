@@ -51,6 +51,18 @@ the EcoFlow inverter receives no readings. This integration closes that gap:
 - Energy counters are expected in **watt-hours (Wh)** to match the official spec — see
   [`docs/api-spec.md`](docs/api-spec.md).
 
+## Tested with
+
+The integration is actively in use against the following combination. Reports about
+other setups are welcome — please open an issue with your versions.
+
+| Component | Version |
+|-----------|---------|
+| Home Assistant Core | **2026.5.1** |
+| EcoTracker emulation profile | **EcoTracker IR** (mDNS service `_everhome._tcp`, JSON `/v1/json`) |
+| EcoFlow inverter | **Stream Ultra X** |
+| EcoFlow inverter firmware | **V1.0.2.1** |
+
 ## Known limitations
 
 - The HTTP API runs on the **Home Assistant port (default 8123)**, not on port 80.
@@ -60,6 +72,16 @@ the EcoFlow inverter receives no readings. This integration closes that gap:
   global).
 - Authentication is disabled (just like on the real device) — the endpoint is freely
   readable on the local network.
+- The **EcoFlow app shows the EcoTracker IR as „offline / disconnected“** unless the
+  paired inverter is **actively using** the meter as its power-source input. As soon as
+  the inverter polls and uses the values, the meter’s telemetry tile in the app starts
+  showing live values; if the inverter stops using it, the tile flips back to
+  „disconnected“. Pairing itself works either way and `/v1/json` keeps responding
+  normally. The Tibber Pulse, for comparison, always shows up as connected because the
+  EcoFlow app talks to it via the Tibber cloud rather than the local API — a path the
+  emulator cannot replicate. So the indicator is **really an „in active use“ flag**, not
+  a true reachability check. No fix known; reports of app versions where this differs
+  are welcome via issue.
 
 ## Supported platforms
 
