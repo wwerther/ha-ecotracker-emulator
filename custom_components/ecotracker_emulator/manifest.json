@@ -1,0 +1,12 @@
+{
+  "domain": "ecotracker_emulator",
+  "name": "EcoTracker Emulator",
+  "version": "1.0.0",
+  "requirements": ["zeroconf==0.132.2"],
+  "dependencies": ["zeroconf", "http"],
+  "codeowners": ["@dein_github_name"],
+  "iot_class": "local_push",
+  "config_flow": true,
+  "documentation": "https://github.com/dein_name/ha-ecotracker",
+  "issue_tracker": "https://github.com/dein_name/ha-ecotracker/issues"
+}
