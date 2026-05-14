@@ -13,10 +13,6 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 
 ### 🟠 Functional gaps (advertised features missing)
 
-- [ ] **`services.yaml` declares a `reload` service that is not implemented.** Either
-  register the service in `async_setup` (using
-  `homeassistant.helpers.service.async_register_admin_service` or
-  `homeassistant.helpers.reload.async_setup_reload_service`) or remove the YAML entry.
 - [ ] **Make mDNS metadata editable post-setup.** `serial`, `product_id` and the `MAC`
   suffix are stored in `entry.data` (set during initial config flow). Allow editing them
   via the options flow once the entity-mapping flow is built; today the user has to
@@ -98,7 +94,13 @@ Resolved items, newest first. Keep the resolution note so we remember _why_ some
 changed.
 
 ### 2026-05-14
-- [x] 🟢 **Sensor picker filter is now optional + unit-aware.** The picker still
+- [x] � **Removed phantom `reload` service.** `services.yaml` declared
+  `ecotracker_emulator.reload` but never registered it via
+  `hass.services.async_register`, so calling it would have failed. The integration
+  card's built-in *Reload* button covers manual reloads, and the existing options-flow
+  update listener already triggers `async_reload` after every options change. The file
+  was deleted.
+- [x] �🟢 **Sensor picker filter is now optional + unit-aware.** The picker still
   prefers sensors with the matching `device_class`, but additionally accepts any
   sensor whose `unit_of_measurement` fits (W/kW/mW for power, Wh/kWh/MWh for energy)
   so hand-rolled template sensors without a `device_class` show up. A new toggle
