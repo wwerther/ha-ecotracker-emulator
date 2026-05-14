@@ -13,13 +13,6 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 
 ### 🟠 Functional gaps (advertised features missing)
 
-- [ ] **Options flow is only a stub.** `EcotrackerOptionsFlow.async_step_init` shows an
-  empty form; there is no UI to map JSON fields to entities or edit fallbacks, even though
-  README/info.md promise it.
-  - Build a schema that, for every key in `DEFAULT_VALUES`, offers
-    `selector.EntitySelector(domain="sensor")` (optional) **and** a numeric fallback.
-  - Persist results into `entry.options` using the `<key>_entity` / `<key>_fallback`
-    naming already expected by `api.py`.
 - [ ] **`services.yaml` declares a `reload` service that is not implemented.** Either
   register the service in `async_setup` (using
   `homeassistant.helpers.service.async_register_admin_service` or
@@ -80,8 +73,6 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
 
 ### 🟢 Documentation & repo hygiene
 
-- [ ] **Translation keys for the options flow** are missing entirely (will be needed once
-  the options flow is implemented).
 - [ ] `README.md` references a non-existent `DEVELOPMENT.md`. Either create it or link
   `AGENTS.md` instead.
 - [ ] `info.md` describes `agePower` as "Lebensenergie (Wattsekunden)" – per real-device
@@ -109,8 +100,15 @@ Resolved items, newest first. Keep the resolution note so we remember _why_ some
 changed.
 
 ### 2026-05-14
-
-- [x] � **mDNS metadata configurable.** `serial`, `product_id` and the MAC suffix were
+- [x] 🟠 **Options flow now maps every JSON field to a sensor / fallback.**
+  `EcotrackerOptionsFlow` was just a stub. It now renders a form with one row per key in
+  `DEFAULT_VALUES`: an `EntitySelector(domain="sensor")` (optional, can be cleared) plus
+  a `NumberSelector` fallback. Results are written to `entry.options` under the
+  `<key>_entity` / `<key>_fallback` keys that `api.py` already consumes; cleared entity
+  selections are normalised to `None`. Translation strings for the `options.init` step
+  added in `en.json` and `de.json`. Also dropped the now-unnecessary
+  `OptionsFlow.__init__(config_entry)` (deprecated by HA in favour of the inherited
+  `self.config_entry`).- [x] � **mDNS metadata configurable.** `serial`, `product_id` and the MAC suffix were
   hard-coded in `__init__.py`. The unused `MDNS_SERVICE_NAME` constant in `const.py` was
   also a leftover.
   - Config flow now asks for `mac_suffix` (12 hex chars, defaults to a random suffix
@@ -121,7 +119,7 @@ changed.
     favour of `SERVICE_NAME_PREFIX` + `MAC_OUI` + `CONF_*` keys. Legacy entries with
     `service_name` in `entry.data` are still served via a fallback in
     `_resolve_service_name()`.
-- [x] �🔴 **Domain mismatch.** Folder is `custom_components/ecotracker_emulator/`, but
+- [x] 🔴 **Domain mismatch.** Folder is `custom_components/ecotracker_emulator/`, but
   `manifest.json` and `const.py` declared `domain = "ecotracker"`. HA requires these to be
   identical, otherwise the integration fails to load.
   - `DOMAIN` and `manifest.domain` now both read `ecotracker_emulator`; HTTP view name

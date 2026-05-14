@@ -8,6 +8,13 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+)
 
 from .const import (
     CONF_MAC_SUFFIX,
@@ -141,15 +148,50 @@ class EcotrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry):
-        return EcotrackerOptionsFlow(config_entry)
+        return EcotrackerOptionsFlow()
 
 
 class EcotrackerOptionsFlow(config_entries.OptionsFlow):
-    def __init__(self, config_entry):
-        self.config_entry = config_entry
+    """Map each EcoTracker JSON field to a HA sensor entity or numeric fallback."""
 
-    async def async_step_init(self, user_input=None):
-        # Placeholder until the entity-mapping UI is built (see TODO.md).
+    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+        current = dict(self.config_entry.options)
+
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-        return self.async_show_form(step_id="init")
+            # Persist all entity / fallback pairs. Empty entity selections come
+            # back as missing keys; normalise to an explicit `None` so api.py's
+            # `options.get(...)` keeps working as before.
+            new_options: dict[str, Any] = {}
+            for key in DEFAULT_VALUES:
+                entity_key = f"{key}_entity"
+                fallback_key = f"{key}_fallback"
+                new_options[entity_key] = user_input.get(entity_key) or None
+                new_options[fallback_key] = user_input[fallback_key]
+            return self.async_create_entry(title="", data=new_options)
+
+        schema_dict: dict[Any, Any] = {}
+        for key, default_value in DEFAULT_VALUES.items():
+            entity_key = f"{key}_entity"
+            fallback_key = f"{key}_fallback"
+            current_entity = current.get(entity_key)
+            current_fallback = current.get(fallback_key, default_value)
+
+            entity_field = vol.Optional(
+                entity_key,
+                description={"suggested_value": current_entity}
+                if current_entity
+                else None,
+            )
+            schema_dict[entity_field] = EntitySelector(
+                EntitySelectorConfig(domain="sensor")
+            )
+            schema_dict[
+                vol.Required(fallback_key, default=current_fallback)
+            ] = NumberSelector(
+                NumberSelectorConfig(mode=NumberSelectorMode.BOX, step="any")
+            )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(schema_dict),
+        )

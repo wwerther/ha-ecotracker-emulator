@@ -22,5 +22,31 @@
       "already_configured": "This service name is already in use.",
       "single_instance_allowed": "Only one EcoTracker Emulator instance can be configured."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Map JSON fields to sensors",
+        "description": "For each field of the EcoTracker `/v1/json` response you can pick a Home Assistant sensor whose state will be served. If no sensor is set – or its state is unknown/unavailable – the numeric fallback is used. Energy counters are in watt-hours (Wh).",
+        "data": {
+          "power_entity": "power – sensor",
+          "power_fallback": "power – fallback (W)",
+          "powerAvg_entity": "powerAvg – sensor",
+          "powerAvg_fallback": "powerAvg – fallback (W)",
+          "agePower_entity": "agePower – sensor",
+          "agePower_fallback": "agePower – fallback (ms)",
+          "powerPhase1_entity": "powerPhase1 – sensor",
+          "powerPhase1_fallback": "powerPhase1 – fallback (W)",
+          "powerPhase2_entity": "powerPhase2 – sensor",
+          "powerPhase2_fallback": "powerPhase2 – fallback (W)",
+          "powerPhase3_entity": "powerPhase3 – sensor",
+          "powerPhase3_fallback": "powerPhase3 – fallback (W)",
+          "energyCounterOut_entity": "energyCounterOut – sensor",
+          "energyCounterOut_fallback": "energyCounterOut – fallback (Wh)",
+          "energyCounterIn_entity": "energyCounterIn – sensor",
+          "energyCounterIn_fallback": "energyCounterIn – fallback (Wh)"
+        }
+      }
+    }
   }
 }

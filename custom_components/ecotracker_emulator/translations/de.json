@@ -22,5 +22,31 @@
       "already_configured": "Dieser Dienstname wird bereits verwendet.",
       "single_instance_allowed": "Es kann nur eine Instanz des EcoTracker Emulators eingerichtet werden."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "JSON-Felder auf Sensoren mappen",
+        "description": "Für jedes Feld der EcoTracker-`/v1/json`-Antwort kannst du einen Home-Assistant-Sensor wählen, dessen Zustand gemeldet wird. Wenn kein Sensor gesetzt ist – oder sein Zustand `unknown`/`unavailable` ist – wird der numerische Fallback verwendet. Energiezähler werden in Wattstunden (Wh) erwartet.",
+        "data": {
+          "power_entity": "power – Sensor",
+          "power_fallback": "power – Fallback (W)",
+          "powerAvg_entity": "powerAvg – Sensor",
+          "powerAvg_fallback": "powerAvg – Fallback (W)",
+          "agePower_entity": "agePower – Sensor",
+          "agePower_fallback": "agePower – Fallback (ms)",
+          "powerPhase1_entity": "powerPhase1 – Sensor",
+          "powerPhase1_fallback": "powerPhase1 – Fallback (W)",
+          "powerPhase2_entity": "powerPhase2 – Sensor",
+          "powerPhase2_fallback": "powerPhase2 – Fallback (W)",
+          "powerPhase3_entity": "powerPhase3 – Sensor",
+          "powerPhase3_fallback": "powerPhase3 – Fallback (W)",
+          "energyCounterOut_entity": "energyCounterOut – Sensor",
+          "energyCounterOut_fallback": "energyCounterOut – Fallback (Wh)",
+          "energyCounterIn_entity": "energyCounterIn – Sensor",
+          "energyCounterIn_fallback": "energyCounterIn – Fallback (Wh)"
+        }
+      }
+    }
   }
 }
