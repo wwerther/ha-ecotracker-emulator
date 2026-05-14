@@ -2,15 +2,16 @@
   "config": {
     "step": {
       "user": {
-        "title": "EcoTracker Emulator einrichten",
+        "title": "Set up EcoTracker Emulator",
         "data": {
-          "service_name": "mDNS Dienstname",
-          "port": "Port (standard 8123)"
+          "service_name": "mDNS service name",
+          "port": "Port (default 8123)"
         }
       }
     },
     "abort": {
-      "already_configured": "Dieser Dienstname wird bereits verwendet."
+      "already_configured": "This service name is already in use.",
+      "single_instance_allowed": "Only one EcoTracker Emulator instance can be configured."
     }
   }
 }

@@ -13,17 +13,21 @@ class EcotrackerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input=None):
-        errors = {}
+        # Nur eine Instanz erlauben - HA hoert nur auf einem Port und
+        # /v1/json existiert global, mehrere Eintraege wuerden kollidieren.
+        if self._async_current_entries():
+            return self.async_abort(reason="single_instance_allowed")
+
+        errors: dict[str, str] = {}
         if user_input is not None:
-            # Prüfe, ob die Integration bereits existiert
-            await self.async_set_unique_id(user_input["service_name"])
+            await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
 
             return self.async_create_entry(
                 title=user_input["service_name"],
                 data=user_input,
                 options={
-                    # Hier später die Sensor-Zuordnungen speichern
+                    # Hier spaeter die Sensor-Zuordnungen speichern
                     **{f"{key}_entity": None for key in DEFAULT_VALUES},
                     **{f"{key}_fallback": value for key, value in DEFAULT_VALUES.items()}
                 }

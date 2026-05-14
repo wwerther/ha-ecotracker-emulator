@@ -15,19 +15,23 @@ sync with the actual implementation state.
     `ecotracker_emulator`; HTTP view name updated to `ecotracker_emulator:json`.
   - Note: `entry.data["service_name"]` (default `ecotracker-B43A452249C9`) is the **mDNS
     advertised name** and intentionally keeps the hyphenated form – it is not a HA domain.
-- [ ] **mDNS service is never deregistered.** `_publish_mdns_service()` registers the
-  `ServiceInfo`, but the comment _“ServiceInfo speichern, um später zu deregistrieren”_ is
-  not implemented. `async_unload_entry` returns `True` without calling
-  `aiozc.async_unregister_service(...)`. → Stale announcements after reload/unload.
-  - Store the `ServiceInfo` (and the `aiozc` reference) in
-    `hass.data[DOMAIN][entry.entry_id]` and unregister on unload.
-- [ ] **`hass.config.api.local_ip` is unreliable / may be `None`** (e.g. when HA listens on
+- [x] **mDNS service is never deregistered.** `_publish_mdns_service()` registers the
+  `ServiceInfo`, but `async_unload_entry` did not call `aiozc.async_unregister_service(...)`.
+  - Resolved 2026-05-14: `__init__.py` now stores `aiozc` and `ServiceInfo` in
+    `hass.data[DOMAIN][entry.entry_id]` and unregisters them on unload (with logging on
+    register/failure).
+- [x] **`hass.config.api.local_ip` is unreliable / may be `None`** (e.g. when HA listens on
   `0.0.0.0`). Use `homeassistant.components.network.async_get_source_ip(hass, MDNS_TARGET_IP)`
   or `homeassistant.helpers.network.get_url(...)` to obtain a routable LAN IP, and guard
   against `None` before calling `socket.inet_aton`.
-- [ ] **`requirements` pins `zeroconf==0.132.2`.** Custom integrations must not pin
+  - Resolved 2026-05-14: `__init__.py` now uses `network.async_get_source_ip(hass,
+    MDNS_TARGET_IP)` and raises a clear `RuntimeError` when no routable IP is found.
+    Added `network` to manifest `dependencies`.
+- [x] **`requirements` pins `zeroconf==0.132.2`.** Custom integrations must not pin
   `zeroconf`; HA ships its own version and pinning will either be ignored or break the
   install. Remove from `requirements`; `dependencies: ["zeroconf", "http"]` is enough.
+  - Resolved 2026-05-14: `requirements` is now `[]`, dependencies extended to
+    `["http", "network", "zeroconf"]`.
 
 ## 🟠 Functional gaps (advertised features missing)
 
@@ -46,10 +50,35 @@ sync with the actual implementation state.
   Make these configurable via the options flow as documented in AGENTS.md.
 - [ ] **`MDNS_SERVICE_NAME` constant in `const.py` is unused** – the value comes from
   `entry.data["service_name"]` instead. Remove it or actually use it as the default.
-- [ ] **Multiple instances unsupported.** `EcotrackerJsonView._get_entry()` always returns
+- [x] **Multiple instances unsupported.** `EcotrackerJsonView._get_entry()` always returned
   the first config entry. Either restrict to a single entry
   (`async_step_user` → `self._async_current_entries()`-check) or carry the entry id in the
   URL / register one view per entry.
+  - Resolved 2026-05-14: `async_step_user` aborts with `single_instance_allowed` when an
+    entry already exists; `unique_id` set to `DOMAIN`. Translation strings added in
+    `en.json` and `de.json`.
+
+## 🟣 Spec compliance (vs. [`docs/api-spec.md`](docs/api-spec.md))
+
+- [ ] **Energy units are watt-hours, not kWh.** Per spec `energyCounterIn` /
+  `energyCounterOut` are in **Wh**. Current `DEFAULT_VALUES` look Wh-shaped (e.g.
+  `5502204.6` ≈ 5.5 MWh) but `README.md` / `info.md` document them as kWh. Either:
+  - Fix the user-facing docs to say "Wh", **and**
+  - Document that mapped HA sensors must be in Wh (or auto-convert from kWh in `api.py`
+    based on the source entity's `unit_of_measurement`).
+- [ ] **`agePower` is not in the official spec** but is currently in `DEFAULT_VALUES` and
+  served by `api.py`. Decide:
+  - drop it (spec-compliant), **or**
+  - keep it as legacy/optional field and note in `docs/api-spec.md` that it is an
+    inofficial extension observed on older firmware.
+- [ ] **Tariff counters missing.** `energyCounterInT1` and `energyCounterInT2`
+  (Hoch-/Niedertarif) are part of the spec but not emulated. Per spec they are optional,
+  so omitting them by default is fine. Once the options flow exists, expose them as
+  optional fields (entity or fallback, plus an "off" choice that omits the key entirely).
+- [ ] **Optional fields should be omitable.** Spec says `powerPhaseN` and the tariff
+  counters can be absent (single-phase meters, meters without tariff). Today `api.py`
+  always emits every key. Add a per-field "not provided / omit" option so strict clients
+  see a realistic single-phase response.
 
 ## 🟡 Code quality & robustness
 
@@ -69,8 +98,9 @@ sync with the actual implementation state.
 
 ## 🟢 Documentation & repo hygiene
 
-- [ ] **Translations:** `translations/en.json` contains German strings ("einrichten",
-  "Dienstname"). Provide a real English `en.json` and add `de.json` for German.
+- [x] **Translations:** `translations/en.json` contained German strings ("einrichten",
+  "Dienstname"). Now provides real English `en.json`; `de.json` already exists with German
+  strings. Both files include the `single_instance_allowed` abort key (2026-05-14).
 - [ ] **Translation keys for the options flow** are missing entirely (will be needed once
   the options flow is implemented).
 - [ ] `README.md` references a non-existent `DEVELOPMENT.md`. Either create it or link
