@@ -3,11 +3,20 @@
     "step": {
       "user": {
         "title": "EcoTracker Emulator einrichten",
+        "description": "Der mDNS-Dienst wird als `{prefix}<MAC>` veröffentlicht. Das MAC-Suffix sollte für beste Client-Kompatibilität mit der EcoTracker-OUI `{oui}` beginnen – ein zufälliger Vorschlag ist bereits eingetragen. Seriennummer und Produkt-ID werden als TXT-Records mitgesendet.",
         "data": {
-          "service_name": "mDNS Dienstname",
-          "port": "Port (standard 8123)"
+          "mac_suffix": "MAC-Suffix (12 Hexzeichen, ohne Trenner)",
+          "serial": "Seriennummer (12 Hexzeichen)",
+          "product_id": "Produkt-ID",
+          "port": "Port (Standard 8123)"
         }
       }
+    },
+    "error": {
+      "invalid_mac_suffix": "Das MAC-Suffix muss aus genau 12 Hexzeichen bestehen (Trennzeichen werden automatisch entfernt).",
+      "invalid_serial": "Die Seriennummer muss aus genau 12 Hexzeichen bestehen.",
+      "invalid_product_id": "Die Produkt-ID darf nicht leer sein.",
+      "invalid_port": "Der Port muss zwischen 1 und 65535 liegen."
     },
     "abort": {
       "already_configured": "Dieser Dienstname wird bereits verwendet.",

@@ -8,9 +8,33 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .api import EcotrackerJsonView
-from .const import DOMAIN, MDNS_PORT, MDNS_SERVICE_TYPE
+from .const import (
+    CONF_LEGACY_SERVICE_NAME,
+    CONF_MAC_SUFFIX,
+    CONF_PORT,
+    CONF_PRODUCT_ID,
+    CONF_SERIAL,
+    DEFAULT_PRODUCT_ID,
+    DOMAIN,
+    MDNS_PORT,
+    MDNS_SERVICE_TYPE,
+    SERVICE_NAME_PREFIX,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _resolve_service_name(entry: ConfigEntry) -> str:
+    """Build the full mDNS service name, supporting legacy entries."""
+    mac_suffix = entry.data.get(CONF_MAC_SUFFIX)
+    if mac_suffix:
+        return f"{SERVICE_NAME_PREFIX}{mac_suffix}"
+    legacy = entry.data.get(CONF_LEGACY_SERVICE_NAME)
+    if legacy:
+        return str(legacy)
+    raise RuntimeError(
+        "Config entry is missing both 'mac_suffix' and legacy 'service_name'"
+    )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -56,8 +80,8 @@ async def _publish_mdns_service(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> tuple[object, zc.ServiceInfo]:
     aiozc = await zeroconf.async_get_async_instance(hass)
-    service_name = f"{entry.data['service_name']}.{MDNS_SERVICE_TYPE}"
-    port = entry.data.get("port", MDNS_PORT)
+    service_name = f"{_resolve_service_name(entry)}.{MDNS_SERVICE_TYPE}"
+    port = entry.data.get(CONF_PORT, MDNS_PORT)
 
     local_ip = await network.async_get_source_ip(hass, MDNS_TARGET_IP)
     if not local_ip:
@@ -68,8 +92,8 @@ async def _publish_mdns_service(
 
     properties = {
         "ip": local_ip,
-        "serial": "a5e235f42c75",  # statisch - spaeter konfigurierbar
-        "productid": "1137",
+        "serial": entry.data.get(CONF_SERIAL, "a5e235f42c75"),
+        "productid": entry.data.get(CONF_PRODUCT_ID, DEFAULT_PRODUCT_ID),
     }
 
     service_info = zc.ServiceInfo(

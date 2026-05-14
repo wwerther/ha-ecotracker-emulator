@@ -24,10 +24,10 @@ Legend: 🔴 blocker · 🟠 functional gap · 🟣 spec compliance · 🟡 code
   register the service in `async_setup` (using
   `homeassistant.helpers.service.async_register_admin_service` or
   `homeassistant.helpers.reload.async_setup_reload_service`) or remove the YAML entry.
-- [ ] **mDNS metadata is hard-coded** (`serial = "a5e235f42c75"`, `productid = "1137"`).
-  Make these configurable via the options flow as documented in AGENTS.md.
-- [ ] **`MDNS_SERVICE_NAME` constant in `const.py` is unused** – the value comes from
-  `entry.data["service_name"]` instead. Remove it or actually use it as the default.
+- [ ] **Make mDNS metadata editable post-setup.** `serial`, `product_id` and the `MAC`
+  suffix are stored in `entry.data` (set during initial config flow). Allow editing them
+  via the options flow once the entity-mapping flow is built; today the user has to
+  delete and re-add the integration to change them.
 
 ### 🟣 Spec compliance (vs. [`docs/api-spec.md`](docs/api-spec.md))
 
@@ -110,7 +110,18 @@ changed.
 
 ### 2026-05-14
 
-- [x] 🔴 **Domain mismatch.** Folder is `custom_components/ecotracker_emulator/`, but
+- [x] � **mDNS metadata configurable.** `serial`, `product_id` and the MAC suffix were
+  hard-coded in `__init__.py`. The unused `MDNS_SERVICE_NAME` constant in `const.py` was
+  also a leftover.
+  - Config flow now asks for `mac_suffix` (12 hex chars, defaults to a random suffix
+    using the EcoTracker OUI `B43A45`), `serial` (12 hex chars, random default) and
+    `product_id` (default `1137`). Service name is computed as
+    `ecotracker-<MAC_SUFFIX>` and exposed via mDNS; serial / productid go into the
+    TXT records. Validation + i18n error strings added; `MDNS_SERVICE_NAME` removed in
+    favour of `SERVICE_NAME_PREFIX` + `MAC_OUI` + `CONF_*` keys. Legacy entries with
+    `service_name` in `entry.data` are still served via a fallback in
+    `_resolve_service_name()`.
+- [x] �🔴 **Domain mismatch.** Folder is `custom_components/ecotracker_emulator/`, but
   `manifest.json` and `const.py` declared `domain = "ecotracker"`. HA requires these to be
   identical, otherwise the integration fails to load.
   - `DOMAIN` and `manifest.domain` now both read `ecotracker_emulator`; HTTP view name

@@ -3,11 +3,20 @@
     "step": {
       "user": {
         "title": "Set up EcoTracker Emulator",
+        "description": "The mDNS service is announced as `{prefix}<MAC>`. The MAC suffix should start with the EcoTracker OUI `{oui}` for best client compatibility – a random suggestion is pre-filled. Serial and product ID are sent as TXT records.",
         "data": {
-          "service_name": "mDNS service name",
+          "mac_suffix": "MAC suffix (12 hex chars, no separators)",
+          "serial": "Serial (12 hex chars)",
+          "product_id": "Product ID",
           "port": "Port (default 8123)"
         }
       }
+    },
+    "error": {
+      "invalid_mac_suffix": "MAC suffix must be exactly 12 hexadecimal characters (separators are stripped automatically).",
+      "invalid_serial": "Serial must be exactly 12 hexadecimal characters.",
+      "invalid_product_id": "Product ID must not be empty.",
+      "invalid_port": "Port must be between 1 and 65535."
     },
     "abort": {
       "already_configured": "This service name is already in use.",
