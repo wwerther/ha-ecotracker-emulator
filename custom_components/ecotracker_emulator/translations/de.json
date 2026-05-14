@@ -27,8 +27,9 @@
     "step": {
       "init": {
         "title": "JSON-Felder auf Sensoren mappen",
-        "description": "Für jedes Feld der EcoTracker-`/v1/json`-Antwort kannst du einen Home-Assistant-Sensor wählen, dessen Zustand gemeldet wird. Wenn kein Sensor gesetzt ist – oder sein Zustand `unknown`/`unavailable` ist – wird der numerische Fallback verwendet. Energiezähler werden in Wattstunden (Wh) erwartet.",
+        "description": "Für jedes Feld der EcoTracker-`/v1/json`-Antwort kannst du einen Home-Assistant-Sensor wählen, dessen Zustand gemeldet wird. Wenn kein Sensor gesetzt ist – oder sein Zustand `unknown`/`unavailable` ist – wird der numerische Fallback verwendet. Energiezähler werden in Wattstunden (Wh) erwartet. Die Sensor-Auswahl ist nach passender `device_class` und Einheit vorgefiltert (W/kW für Leistung, Wh/kWh für Energie); aktiviere *Alle Sensoren zeigen*, um den Filter abzuschalten.",
         "data": {
+          "show_all_sensors": "Alle Sensoren zeigen (Filter nach device_class / Einheit deaktivieren)",
           "power_entity": "power – Sensor",
           "power_fallback": "power – Fallback (W)",
           "powerAvg_entity": "powerAvg – Sensor",

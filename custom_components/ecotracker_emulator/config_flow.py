@@ -29,9 +29,9 @@ from .const import (
     SERVICE_NAME_PREFIX,
 )
 
-# Map each EcoTracker JSON field to a HA sensor `device_class` so the entity
-# picker only lists matching sensors. `None` = no filter (e.g. agePower is a
-# millisecond age and has no native device_class match).
+# Per-field hints used to narrow down the sensor picker. `device_class` is the
+# preferred filter; `units` catches sensors that lack a device_class (typical
+# for hand-rolled template sensors). `None`/empty = no filter (e.g. agePower).
 _FIELD_DEVICE_CLASS: dict[str, str | None] = {
     "power": "power",
     "powerAvg": "power",
@@ -42,6 +42,18 @@ _FIELD_DEVICE_CLASS: dict[str, str | None] = {
     "energyCounterOut": "energy",
     "agePower": None,
 }
+_FIELD_UNITS: dict[str, tuple[str, ...]] = {
+    "power": ("W", "kW", "mW"),
+    "powerAvg": ("W", "kW", "mW"),
+    "powerPhase1": ("W", "kW", "mW"),
+    "powerPhase2": ("W", "kW", "mW"),
+    "powerPhase3": ("W", "kW", "mW"),
+    "energyCounterIn": ("Wh", "kWh", "MWh"),
+    "energyCounterOut": ("Wh", "kWh", "MWh"),
+    "agePower": (),
+}
+
+CONF_SHOW_ALL_SENSORS = "show_all_sensors"
 
 # 12 hex chars, no separators (= 6-byte MAC / serial)
 _HEX12 = re.compile(r"^[0-9A-Fa-f]{12}$")
@@ -170,12 +182,15 @@ class EcotrackerOptionsFlow(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None):
         current = dict(self.config_entry.options)
+        show_all = bool(current.get(CONF_SHOW_ALL_SENSORS, False))
 
         if user_input is not None:
             # Persist all entity / fallback pairs. Empty entity selections come
             # back as missing keys; normalise to an explicit `None` so api.py's
             # `options.get(...)` keeps working as before.
-            new_options: dict[str, Any] = {}
+            new_options: dict[str, Any] = {
+                CONF_SHOW_ALL_SENSORS: bool(user_input.get(CONF_SHOW_ALL_SENSORS)),
+            }
             for key in DEFAULT_VALUES:
                 entity_key = f"{key}_entity"
                 fallback_key = f"{key}_fallback"
@@ -183,7 +198,11 @@ class EcotrackerOptionsFlow(config_entries.OptionsFlow):
                 new_options[fallback_key] = user_input[fallback_key]
             return self.async_create_entry(title="", data=new_options)
 
-        schema_dict: dict[Any, Any] = {}
+        schema_dict: dict[Any, Any] = {
+            vol.Required(
+                CONF_SHOW_ALL_SENSORS, default=show_all
+            ): bool,
+        }
         for key, default_value in DEFAULT_VALUES.items():
             entity_key = f"{key}_entity"
             fallback_key = f"{key}_fallback"
@@ -197,12 +216,7 @@ class EcotrackerOptionsFlow(config_entries.OptionsFlow):
                 else None,
             )
             schema_dict[entity_field] = EntitySelector(
-                EntitySelectorConfig(
-                    domain="sensor",
-                    device_class=_FIELD_DEVICE_CLASS[key],
-                )
-                if _FIELD_DEVICE_CLASS.get(key)
-                else EntitySelectorConfig(domain="sensor")
+                self._entity_selector_config(key, show_all=show_all)
             )
             schema_dict[
                 vol.Required(fallback_key, default=current_fallback)
@@ -214,3 +228,43 @@ class EcotrackerOptionsFlow(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(schema_dict),
         )
+
+    def _entity_selector_config(
+        self, key: str, *, show_all: bool
+    ) -> EntitySelectorConfig:
+        """Build a sensor selector config: device_class + matching units.
+
+        ``show_all=True`` disables filtering entirely (escape hatch for sensors
+        that have neither a device_class nor a known unit). Otherwise we always
+        keep the previously-selected entity in the list, even if it would be
+        filtered out, so the current mapping stays visible.
+        """
+        if show_all or not _FIELD_DEVICE_CLASS.get(key):
+            return EntitySelectorConfig(domain="sensor")
+
+        units = set(_FIELD_UNITS.get(key, ()))
+        # Walk all sensor states and accept those matching either device_class
+        # or one of the known units; this catches template sensors that only
+        # set unit_of_measurement.
+        include: list[str] = []
+        device_class = _FIELD_DEVICE_CLASS[key]
+        for state in self.hass.states.async_all("sensor"):
+            attrs = state.attributes
+            if attrs.get("device_class") == device_class:
+                include.append(state.entity_id)
+                continue
+            if units and attrs.get("unit_of_measurement") in units:
+                include.append(state.entity_id)
+
+        # Always keep the current pick visible, even if filtered out.
+        current_entity = self.config_entry.options.get(f"{key}_entity")
+        if current_entity and current_entity not in include:
+            include.append(current_entity)
+
+        if not include:
+            # No matches at all: fall back to device_class-only filter so the
+            # picker stays usable instead of returning an empty list.
+            return EntitySelectorConfig(
+                domain="sensor", device_class=device_class
+            )
+        return EntitySelectorConfig(include_entities=include)

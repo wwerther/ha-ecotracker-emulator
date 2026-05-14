@@ -98,6 +98,13 @@ Resolved items, newest first. Keep the resolution note so we remember _why_ some
 changed.
 
 ### 2026-05-14
+- [x] 🟢 **Sensor picker filter is now optional + unit-aware.** The picker still
+  prefers sensors with the matching `device_class`, but additionally accepts any
+  sensor whose `unit_of_measurement` fits (W/kW/mW for power, Wh/kWh/MWh for energy)
+  so hand-rolled template sensors without a `device_class` show up. A new toggle
+  *Show all sensors* in the options flow disables filtering entirely as an escape
+  hatch. The currently-selected entity always stays visible even if it would be
+  filtered out.
 - [x] 🟢 **Sensor picker filtered by device_class.** The options-flow entity selectors
   now restrict the dropdown to sensors with the matching `device_class` (`power` for
   `power`/`powerAvg`/`powerPhaseN`, `energy` for `energyCounterIn/Out`). `agePower`

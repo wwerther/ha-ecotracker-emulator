@@ -27,8 +27,9 @@
     "step": {
       "init": {
         "title": "Map JSON fields to sensors",
-        "description": "For each field of the EcoTracker `/v1/json` response you can pick a Home Assistant sensor whose state will be served. If no sensor is set – or its state is unknown/unavailable – the numeric fallback is used. Energy counters are in watt-hours (Wh).",
+        "description": "For each field of the EcoTracker `/v1/json` response you can pick a Home Assistant sensor whose state will be served. If no sensor is set – or its state is unknown/unavailable – the numeric fallback is used. Energy counters are in watt-hours (Wh). The sensor pickers are pre-filtered by `device_class` and matching units (W/kW for power, Wh/kWh for energy); enable *Show all sensors* to disable that filter.",
         "data": {
+          "show_all_sensors": "Show all sensors (disable device_class / unit filter)",
           "power_entity": "power – sensor",
           "power_fallback": "power – fallback (W)",
           "powerAvg_entity": "powerAvg – sensor",
