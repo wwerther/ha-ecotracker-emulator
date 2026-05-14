@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 30 140 140">
+  <!-- Hintergrund/Gehäuse des Zählers -->
+  <rect x="40" y="30" width="120" height="140" rx="15" fill="#2c3e50" />
+  
+  <!-- "Display" Bereich -->
+  <rect x="55" y="45" width="90" height="50" rx="5" fill="#34495e" />
+  
+  <!-- Stilisierter Blitz (Energie/Wechselrichter) -->
+  <path d="M105 55 L90 75 L110 75 L95 95" stroke="#FFD600" stroke-width="6" fill="none" stroke-linejoin="round" stroke-linecap="round" />
+  
+  <!-- Infrarot/Datenwellen (Emulator Aspekt) -->
+  <path d="M70 120 Q100 100 130 120" stroke="#03A9F4" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.9" />
+  <path d="M80 135 Q100 120 120 135" stroke="#03A9F4" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.6" />
+  <path d="M90 150 Q100 140 110 150" stroke="#03A9F4" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.3" />
+  
+  <!-- Kleiner Sensorpunkt (IR-Auge) -->
+  <circle cx="100" cy="38" r="4" fill="#e74c3c" />
+</svg>
