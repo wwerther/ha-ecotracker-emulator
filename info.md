@@ -1,5 +1,9 @@
 # EcoTracker Emulator
 
+<p align="center">
+  <img src="assets/logo.png" alt="EcoTracker-Emulator-Logo" width="160">
+</p>
+
 Emuliert einen [everHome EcoTracker](https://everhome.cloud/en/developer/ecotracker)
 Energiemonitor im Netzwerk, damit andere Geräte (z. B. **EcoFlow-Wechselrichter**) ihn als
 echten EcoTracker erkennen und die Messwerte über die lokale API abfragen können.
@@ -53,7 +57,7 @@ Die Integration aktualisiert die Antwort bei jedem Aufruf von `/v1/json` mit den
 |------|--------------|
 | `power` | Gesamtleistung (Watt) |
 | `powerAvg` | Durchschnittsleistung (Watt) |
-| `agePower` | Lebensenergie (Wattsekunden) |
+| `agePower` | Alter des letzten `power`-Messwerts in Millisekunden (vom Realgerät emittiert, nicht in der offiziellen Spec) |
 | `powerPhase1` | Leistung Phase 1 (Watt) |
 | `powerPhase2` | Leistung Phase 2 (Watt) |
 | `powerPhase3` | Leistung Phase 3 (Watt) |

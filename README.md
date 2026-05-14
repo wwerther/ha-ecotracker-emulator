@@ -1,5 +1,9 @@
 # EcoTracker Emulator for Home Assistant
 
+<p align="center">
+  <img src="assets/logo.png" alt="EcoTracker Emulator logo" width="180">
+</p>
+
 > 🌐 **Language / Sprache:** **English** · [Deutsch](README.de.md)
 
 Emulates an [everHome EcoTracker](https://everhome.cloud/en/developer/ecotracker)

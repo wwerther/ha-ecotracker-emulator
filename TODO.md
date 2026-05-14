@@ -49,21 +49,23 @@ _(none currently open)_
   `__init__.py`). AGENTS.md states type hints are mandatory.
 - [ ] German comments in code (e.g. `__init__.py`, `config_flow.py`). Per AGENTS.md the
   code base should be English; translate remaining comments.
-- [ ] `manifest.json` placeholders: `codeowners: ["@dein_github_name"]`, documentation /
-  issue_tracker URLs still contain `dein_name`. Replace with real values before release.
-- [ ] No `iot_class` review – `local_push` is questionable for a passive HTTP responder;
-  `local_polling` may be more accurate.
+- [ ] `manifest.json` placeholders:
+  ~~`codeowners: ["@dein_github_name"]`~~ ✅ set to `@wwerther`,
+  ~~documentation / issue_tracker URLs~~ ✅ set to
+  `https://github.com/wwerther/ha-ecotracker-emulator`. (Entry kept open until repo
+  actually exists publicly under that URL.)
+- [x] No `iot_class` review – changed `local_push` → `local_polling` (clients poll
+  `/v1/json`; the integration never pushes). ✅ fixed 2026-05-14
 
 ### 🟢 Documentation & repo hygiene
 
-- [ ] `info.md` describes `agePower` as "Lebensenergie (Wattsekunden)" – per real-device
+- [x] `info.md` describes `agePower` as "Lebensenergie (Wattsekunden)" – per real-device
   capture this is the **age of the last power reading in milliseconds**. Fix the
-  description.
+  description. ✅ fixed 2026-05-14
 - [x] Add a `LICENSE` file (README/info.md claim MIT, but no file present). ✅ added 2026-05-14
-- [ ] Add a `.gitignore` (Python/`__pycache__`, `.venv`, `.DS_Store`, etc.) – currently
-  none in the repo.
-- [ ] `hacs.json` could declare `homeassistant` (minimum HA version) and
-  `zip_release: false` for clarity.
+- [x] Add a `.gitignore` (Python/`__pycache__`, `.venv`, `.DS_Store`, etc.) – ✅ already in repo (verified 2026-05-14)
+- [x] `hacs.json` could declare `homeassistant` (minimum HA version) and
+  `zip_release: false` for clarity. ✅ added 2026-05-14 (`homeassistant: 2024.11.0`)
 
 ### 🔵 Future enhancements (parking lot)
 

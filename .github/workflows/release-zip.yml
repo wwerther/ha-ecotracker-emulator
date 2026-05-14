@@ -1,0 +1,24 @@
+name: release-zip
+on:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync version into manifest
+        run: |
+          jq --arg v "${GITHUB_REF_NAME#v}" '.version=$v' \
+             custom_components/ecotracker_emulator/manifest.json \
+             > /tmp/m.json && mv /tmp/m.json \
+             custom_components/ecotracker_emulator/manifest.json
+      - name: Build ZIP
+        working-directory: custom_components/ecotracker_emulator
+        run: zip -r ../../ecotracker_emulator.zip .
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${GITHUB_REF_NAME}" ecotracker_emulator.zip --clobber
