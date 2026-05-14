@@ -66,11 +66,12 @@ sync with the actual implementation state.
   - Fix the user-facing docs to say "Wh", **and**
   - Document that mapped HA sensors must be in Wh (or auto-convert from kWh in `api.py`
     based on the source entity's `unit_of_measurement`).
-- [ ] **`agePower` is not in the official spec** but is currently in `DEFAULT_VALUES` and
-  served by `api.py`. Decide:
-  - drop it (spec-compliant), **or**
-  - keep it as legacy/optional field and note in `docs/api-spec.md` that it is an
-    inofficial extension observed on older firmware.
+- [ ] **`agePower` is not in the official spec** but **is emitted by real devices** (see
+  capture in `docs/api-spec.md`, value e.g. `496`, plausibly age of the last measurement
+  in ms). Decision: **keep emulating it.** Open sub-tasks:
+  - Document it in `docs/api-spec.md` as an inofficial-but-expected field (done).
+  - Make the value dynamic instead of static (e.g. ms since last update of the mapped
+    `power` entity, falling back to a fixed value).
 - [ ] **Tariff counters missing.** `energyCounterInT1` and `energyCounterInT2`
   (Hoch-/Niedertarif) are part of the spec but not emulated. Per spec they are optional,
   so omitting them by default is fine. Once the options flow exists, expose them as
@@ -79,6 +80,15 @@ sync with the actual implementation state.
   counters can be absent (single-phase meters, meters without tariff). Today `api.py`
   always emits every key. Add a per-field "not provided / omit" option so strict clients
   see a realistic single-phase response.
+- [ ] **Discovery / fingerprint fidelity.** Real device returns a custom HTML 404 on every
+  unknown path (`/`, `/favicon.ico`, ...) pointing at `/v1/json` and the everHome docs
+  (see `docs/api-spec.md` → "Real-device capture"). Currently HA serves its own 404 for
+  those paths. Optionally add a catch-all view that mimics the original HTML body byte
+  for byte to improve fingerprint match for strict clients.
+- [ ] **JSON formatting.** Real device returns tab-indented, line-broken JSON with a
+  specific `Content-Length` (188 in the sample). `self.json(...)` in HA produces
+  minified JSON. If clients fingerprint on body shape, switch to a manual
+  `web.Response(text=json.dumps(data, indent='\t'), content_type='application/json')`.
 
 ## 🟡 Code quality & robustness
 
