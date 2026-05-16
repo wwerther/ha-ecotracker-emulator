@@ -69,6 +69,106 @@ _(none currently open)_
 
 ### 🔵 Future enhancements (parking lot)
 
+- [ ] **Per-client profiles ("virtual meter instances").** Serve different payloads on
+  the same `/v1/json` endpoint depending on the requesting client's IP, so several
+  systems (e.g. two EcoFlow inverters that should each see a different subset of
+  loads, or a tariff-aware view for a smart-meter dashboard) can pair with the same
+  emulated EcoTracker.
+
+  Constraint that drives everything below: HA can't expose `/v1/json` twice on the
+  same port and mDNS broadcasts are network-wide, so we always have **exactly one
+  config entry, one mDNS announcement, one HTTP view**. Per-client differentiation
+  happens purely at HTTP-response time based on `request.remote`.
+
+  #### Preferred implementation — **Option B: YAML free-text field in the options flow**
+
+  Cheapest path to a working feature, HACS-friendly, no second source of truth.
+
+  - **Options flow.** Add **one** new field to the existing single-step options
+    form, `extra_profiles`, rendered as a multiline `TextSelector`. The user
+    pastes a YAML list:
+
+    ```yaml
+    - name: Wechselrichter Garten
+      ip_match: 192.168.1.42         # single IP or CIDR (e.g. 192.168.1.0/24)
+      sensors:
+        power: sensor.gartenseite_power
+        powerPhase1: sensor.garten_l1
+      fallbacks:
+        powerPhase2: 0
+      omit:
+        - powerPhase3
+    - name: Tarif-Dashboard
+      ip_match: 10.0.0.0/24
+      sensors:
+        energyCounterIn: sensor.tarif_bezug
+    ```
+
+    No `ALL` / catch-all entry needed in the YAML — the existing flat options
+    (configured through the normal options form) **are** the implicit default
+    profile and handle every request that no explicit profile matches.
+
+    Validate on submit with a `voluptuous` schema + `ipaddress.ip_network(
+    strict=False)` for each `ip_match`. On parse error keep the user's text and
+    surface `errors={"extra_profiles": "invalid_profile_yaml"}` with the line/key
+    that failed in `description_placeholders`.
+
+  - **Default profile stays implicit.** The existing flat
+    `<key>_entity` / `<key>_fallback` / `<key>_omit` options *are* the catch-all
+    profile. No migration needed, no schema break, existing installs keep working
+    untouched. New `extra_profiles` simply prepend in front of that default; no
+    `ip_match: ALL` keyword in the YAML — if a request matches nothing, it falls
+    through to the default by construction.
+
+  - **API view.** On each request:
+    1. resolve `request.remote` (honour `X-Forwarded-For` only when HA's
+       `http.use_x_forwarded_for` is enabled — read from `hass.config`),
+    2. iterate `extra_profiles` top-to-bottom, first match wins,
+    3. on no match fall through to the existing flat-options code path (= default
+       profile).
+
+    Build the JSON from the matched profile's `sensors` (entity lookup → state →
+    unit conversion as today), filling missing keys from `fallbacks`, dropping
+    keys listed in `omit`. Keys not mentioned anywhere inherit from the default
+    profile so users only have to specify *differences*.
+
+  - **Tasks.**
+    - [ ] `const.py`: `CONF_EXTRA_PROFILES = "extra_profiles"`.
+    - [ ] `config_flow.py`: add multiline TextSelector + YAML/schema validation
+          helper; round-trip the raw text so the user sees what they typed.
+    - [ ] `api.py`: profile-matching helper (`_select_profile(remote_ip, profiles)`),
+          plug into existing response builder; keep current code path as the
+          fallback branch.
+    - [ ] README / README.de: a short "Advanced: per-client profiles" section
+          with the YAML example above and the X-Forwarded-For caveat.
+    - [ ] Translations: `extra_profiles` label + help text + the
+          `invalid_profile_yaml` error message in `en.json` / `de.json`.
+    - [ ] Diagnostics (when that lands): include parsed profile list and which
+          profile a given test IP would resolve to; redact entity IDs only if HA
+          policy requires.
+
+  - **Caveats to document.**
+    - Reverse-proxy / Nginx in front of HA hides the real client IP unless
+      `X-Forwarded-For` is configured **both** in HA *and* the proxy.
+    - IPv6 clients work as long as the `ip_match` is written in IPv6 notation
+      (e.g. `fe80::/10`); mixed-family matches silently miss.
+    - mDNS still announces a single `ecotracker-<MAC>` device — all clients
+      pair with the same identity, differentiation is HTTP-only.
+
+  #### Option C — full multi-step UI (only if there is ever spare time)
+
+  If demand for a click-through editor arises, build a proper multi-step
+  `async_step_init` menu with *Add / Edit / Delete / Reorder / Done*, real
+  `EntitySelector`s per field, and `entry.options["profiles"]` as a structured
+  list of dicts (with stable UUIDs to survive reorders). Migration from Option B
+  is trivial: parse the YAML free-text once on upgrade, write it into the
+  structured list, drop the YAML field. Cost is mostly UI plumbing; until then
+  the YAML field covers 100 % of the functional ground.
+
+  #### Rejected — `configuration.yaml`
+
+  Two sources of truth, conflicts with the config-flow entry, and HACS reviewers
+  discourage new YAML config for config-flow integrations. Not pursued.
 - [ ] Reverse proxy / port-80 add-on guidance (some clients hard-code port 80).
 - [ ] Diagnostics support (`async_get_config_entry_diagnostics`) for easier debugging.
 - [ ] Unit tests with `pytest-homeassistant-custom-component`.
@@ -177,4 +277,4 @@ changed.
 
 ---
 
-_Last reviewed: 2026-05-14._
+_Last reviewed: 2026-05-16._
