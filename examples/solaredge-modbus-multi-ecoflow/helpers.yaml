@@ -1,0 +1,69 @@
+# Template helpers for this scenario
+#
+# Four small normalisation helpers that turn the SolarEdge Modbus signed power
+# readings into strictly non-negative, well-named values for the EcoTracker
+# decision template (ecotracker-power.jinja).
+#
+# Sign convention (SolarEdge Modbus Multi, verified against an SE-series
+# inverter on 2026-05):
+#   sensor.solaredge_m1_ac_power     -> + import (grid -> house), - export
+#   sensor.solaredge_b1_dc_power     -> + charging, - discharging
+# (If your installation reports the inverse convention, swap the min/max
+# operators in the Grid Import / Grid Export helpers below.)
+# We split each into two non-negative halves so the downstream template stays
+# sign-agnostic.
+#
+# Installation (recommended):
+#   1) Drop this file in /config/template_helpers/ (folder of your choice).
+#   2) In configuration.yaml add:
+#         template: !include_dir_merge_list template_helpers/
+#   3) Restart Home Assistant.
+#
+# Alternative: recreate each helper via Settings -> Devices & Services ->
+# Helpers -> "Template a sensor". Use the same `name` so the entity_ids match
+# what ecotracker-power.jinja expects.
+#
+# All helpers ship with availability based on `has_value(...)` so they go
+# `unavailable` (instead of returning 0) when the source sensor is missing --
+# this lets the EcoTracker emulator omit the field cleanly instead of feeding
+# a stale zero to the inverter.
+
+- sensor:
+
+    # ---------------------------------------------------------------------
+    # Grid: split the signed meter reading into import / export halves
+    # ---------------------------------------------------------------------
+    - name: SE Power Grid Import
+      unit_of_measurement: W
+      device_class: power
+      state_class: measurement
+      availability: "{{ has_value('sensor.solaredge_m1_ac_power') }}"
+      state: >
+        {{ max([float(states('sensor.solaredge_m1_ac_power'), 0), 0]) }}
+
+    - name: SE Power Grid Export
+      unit_of_measurement: W
+      device_class: power
+      state_class: measurement
+      availability: "{{ has_value('sensor.solaredge_m1_ac_power') }}"
+      state: >
+        {{ min([float(states('sensor.solaredge_m1_ac_power'), 0), 0]) | abs }}
+
+    # ---------------------------------------------------------------------
+    # House battery: split signed DC power into charging / discharging halves
+    # ---------------------------------------------------------------------
+    - name: SE Power Battery Charging
+      unit_of_measurement: W
+      device_class: power
+      state_class: measurement
+      availability: "{{ has_value('sensor.solaredge_b1_dc_power') }}"
+      state: >
+        {{ max([float(states('sensor.solaredge_b1_dc_power'), 0), 0]) | abs }}
+
+    - name: SE Power Battery Discharging
+      unit_of_measurement: W
+      device_class: power
+      state_class: measurement
+      availability: "{{ has_value('sensor.solaredge_b1_dc_power') }}"
+      state: >
+        {{ min([float(states('sensor.solaredge_b1_dc_power'), 0), 0]) | abs }}
