@@ -1,0 +1,66 @@
+{# ---------------------------------------------------------------------------
+   ecotracker-power.jinja
+   ---------------------------------------------------------------------------
+   Output: signed power value (Watt) suitable for the EcoTracker emulator's
+   `power` field, consumed by an EcoFlow Stream Ultra X paired as a meter.
+
+   Sign convention expected by EcoFlow:
+     positive value  -> household is EXPORTING / EcoFlow may charge
+     negative value  -> household is IMPORTING / EcoFlow should discharge
+     0               -> stay idle
+
+   Required input sensors (see helpers.yaml in this folder):
+     sensor.se_power_grid_import          (W, always >= 0)
+     sensor.se_power_grid_export          (W, always >= 0)
+     sensor.se_power_battery_charging     (W, always >= 0)
+     sensor.se_power_battery_discharging  (W, always >= 0)
+     sensor.solaredge_battery_state_of_charge (%)
+   --------------------------------------------------------------------------- #}
+
+{% set import_w     = states('sensor.se_power_grid_import')           | float(0) %}
+{% set export_w     = states('sensor.se_power_grid_export')           | float(0) %}
+{% set discharge_w  = states('sensor.se_power_battery_discharging')   | float(0) %}
+{% set charge_w     = states('sensor.se_power_battery_charging')      | float(0) %}
+{% set battery_soc  = states('sensor.solaredge_battery_state_of_charge') | float(0) %}
+
+{# Tunables -- adjust to your installation #}
+{% set CHARGE_THRESHOLD    = 50  %}  {# W, ignore house-battery charging noise below this #}
+{% set DISCHARGE_THRESHOLD = 50  %}  {# W, ignore house-battery discharge noise below this #}
+{% set EXPORT_THRESHOLD    = 90  %}  {# W, only count real PV surplus #}
+{% set IMPORT_THRESHOLD    = 50  %}  {# W, ignore tiny grid pulls #}
+{% set SOC_EMPTY           = 5   %}  {# %, below this the house battery is considered empty #}
+{% set SPLIT_RATIO         = 0.5 %}  {# share of load EcoFlow covers when house battery still has charge #}
+
+{# ---------------------------------------------------------------------------
+   Decision tree
+   --------------------------------------------------------------------------- #}
+
+{# CASE 1: house battery is actively charging -> EcoFlow must not interfere.
+   Exception: if there is real export on top of the charging draw, the surplus
+   is genuine and EcoFlow may charge from it. #}
+{% if charge_w > CHARGE_THRESHOLD %}
+  {% if export_w > EXPORT_THRESHOLD %}
+    {{ export_w | round(0) }}
+  {% else %}
+    0
+  {% endif %}
+
+{# CASE 2: real PV surplus -> EcoFlow charges with full export #}
+{% elif export_w > EXPORT_THRESHOLD %}
+  {{ export_w | round(0) }}
+
+{# CASE 3: load on the house side (grid import OR house-battery discharging) #}
+{% elif discharge_w > DISCHARGE_THRESHOLD or import_w > IMPORT_THRESHOLD %}
+  {% set total_load = import_w + discharge_w %}
+  {% if battery_soc <= SOC_EMPTY %}
+    {# House battery empty -> EcoFlow covers 100 % of the load #}
+    {{ (total_load * -1) | round(0) }}
+  {% else %}
+    {# House battery still has capacity -> share the load with EcoFlow #}
+    {{ (total_load * SPLIT_RATIO * -1) | round(0) }}
+  {% endif %}
+
+{# CASE 4: dead zone -> idle #}
+{% else %}
+  0
+{% endif %}

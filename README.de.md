@@ -53,6 +53,17 @@ EcoFlow-Wechselrichter keine Messwerte. Hier setzt diese Integration an:
 - Energiezähler werden in **Wattstunden (Wh)** erwartet – passend zur offiziellen Spec
   (siehe [`docs/api-spec.md`](docs/api-spec.md)).
 
+## Beispiel-Setups
+
+Komplette End-to-End-Beispiele (Quell-Integrationen, Template-Helfer, Entscheidungs-Jinja)
+liegen unter [`examples/`](examples/). Aktuell enthalten:
+
+- [SolarEdge Modbus Multi + EcoFlow Stream Ultra X](examples/solaredge-modbus-multi-ecoflow/) –
+  Versorgung eines EcoFlow-Wechselrichters aus einem SolarEdge-PV-/Akku-Setup.
+
+Beiträge für weitere Quell-Integrationen sind willkommen – die Ordnerstruktur ist in
+[`examples/README.md`](examples/README.md) dokumentiert.
+
 ## Getestet mit
 
 Die Integration ist mit der folgenden Kombination produktiv im Einsatz. Rückmeldungen

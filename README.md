@@ -51,6 +51,17 @@ the EcoFlow inverter receives no readings. This integration closes that gap:
 - Energy counters are expected in **watt-hours (Wh)** to match the official spec — see
   [`docs/api-spec.md`](docs/api-spec.md).
 
+## Example setups
+
+Worked end-to-end examples (source integrations, template helpers, decision Jinja) live
+under [`examples/`](examples/). Currently included:
+
+- [SolarEdge Modbus Multi + EcoFlow Stream Ultra X](examples/solaredge-modbus-multi-ecoflow/) —
+  feeding an EcoFlow inverter from a SolarEdge PV/battery setup.
+
+Contributions for other source integrations are welcome — see
+[`examples/README.md`](examples/README.md) for the folder layout.
+
 ## Tested with
 
 The integration is actively in use against the following combination. Reports about
