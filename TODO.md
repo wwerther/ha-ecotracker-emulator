@@ -108,6 +108,22 @@ _(none currently open)_
     `AC Charging`, `Time-of-Use` and `Manual` modes. Only `Self-Consumption` (or
     equivalent firmware-specific name) honours `/v1/json`. Document which app-side
     settings are prerequisites for the emulator to take effect.
+  - **Internal dead-band / slew-rate / integration window.** Live observation 2026-05-17:
+    `power = −3 W` (signal hovering around zero) produces no charge attempt → consistent
+    with a dead-band of at least a few watts around 0. With live Localtibber feedback,
+    output ramps gradually and stops cleanly, no overshoot → consistent with a
+    slew-rate cap and/or rate-limited integral action. With *static* JSON values
+    (loop artificially open), output ramps to the configured limit within a few
+    seconds → consistent with a PI/PID regulator whose error integral isn't being
+    closed. Quantify all three: feed step inputs at known amplitudes via cron+`curl`,
+    log EcoFlow output via the Ecoflow Cloud HA integration, extract step response.
+  - **Per-phase vs. aggregate revisited.** When the same value is sent on all three
+    `powerPhase*` fields (e.g. `120 / 120 / 120`) while `power` says something else
+    (e.g. `−3`), the Stream Ultra X follows the per-phase signal (ramps to discharge
+    360 W). When per-phase values match a real grid (e.g. `120 / 139 / −263`,
+    `power = −3`, internally consistent), the inverter follows the saldo and stays
+    idle. Confirms per-phase dominance *and* hints at an internal consistency check
+    (large mismatch between `Σ powerPhase` and `power` may trigger fallback).
 
 - [ ] **Per-client profiles ("virtual meter instances").** Serve different payloads on
   the same `/v1/json` endpoint depending on the requesting client's IP, so several
@@ -221,6 +237,27 @@ _(none currently open)_
 
 Resolved items, newest first. Keep the resolution note so we remember _why_ something was
 changed.
+
+### 2026-05-17
+- [x] 🟢 **Eindampfen `localtibber-discharge-only-ecoflow/` to a templates-free
+  recipe.** Live testing on the same day showed that the clamp-to-non-negative jinjas
+  (a) add no real protection (the hybrid inverter wins the PV-surplus race anyway),
+  (b) actively misbehave on the common mixed-sign per-phase case (one phase exporting
+  while two import → ghost-export through the EcoFlow), and (c) become unnecessary
+  once you confirm the Stream Ultra X has its own dead-band around 0. The folder now
+  ships a single README that tells the user to **map Localtibber sensors directly in
+  the options flow**, explains *why* the clamp-templates were removed, and invites PRs
+  with field observations. Deleted: `source-entities.md`, `ecotracker-power.jinja`,
+  `ecotracker-powerPhase.jinja`. Cross-linked from the parent `examples/README.md`.
+- [x] 🟢 **New example scenario `localtibber-discharge-only-ecoflow/`.** Minimal
+  discharge-only setup for users who already run a SolarEdge (or comparable) hybrid
+  inverter with its own house battery and want to add an EcoFlow Stream Ultra X as a
+  second, non-competing discharge source. Drives the EcoFlow purely from Tibber Pulse
+  SML readings at the grid coupling point — closed loop is native, no helpers required,
+  no charging command ever emitted (avoids competing with the existing house battery
+  for PV surplus). Files: `README.md`, `source-entities.md`, `ecotracker-power.jinja`,
+  `ecotracker-powerPhase.jinja`. Also linked from `examples/README.md`. **Superseded
+  by the eindampfen entry above the same day.**
 
 ### 2026-05-14
 - [x] 🟠 **mDNS metadata editable post-setup (reconfigure flow).** The integration card

@@ -17,7 +17,8 @@ Each subfolder is a self-contained scenario with:
 
 | Folder | Source | Target device | Verification status |
 |--------|--------|---------------|---------------------|
-| [solaredge-modbus-multi-ecoflow](solaredge-modbus-multi-ecoflow/) | SolarEdge SE inverter + house battery via Modbus | EcoFlow Stream Ultra X | ⚠️ Author migration in progress — see [`VERIFICATION.md`](solaredge-modbus-multi-ecoflow/VERIFICATION.md) before using |
+| [solaredge-modbus-multi-ecoflow](solaredge-modbus-multi-ecoflow/) | SolarEdge SE inverter + house battery via Modbus | EcoFlow Stream Ultra X (charge + discharge) | ⚠️ Author migration in progress — see [`VERIFICATION.md`](solaredge-modbus-multi-ecoflow/VERIFICATION.md) before using |
+| [localtibber-discharge-only-ecoflow](localtibber-discharge-only-ecoflow/) | Tibber Pulse SML reader at the grid coupling point | EcoFlow Stream Ultra X (**discharge only**, alongside an existing hybrid-inverter house battery) | ✅ Direct entity mapping — **no templates, no helpers required**; explains *why* not |
 
 ## Contributing a scenario
 
