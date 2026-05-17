@@ -158,7 +158,25 @@ effort:
 - **Tunables.** The thresholds in
   [`ecotracker-power.jinja`](ecotracker-power.jinja) (`CHARGE_THRESHOLD`,
   `EXPORT_THRESHOLD`, `SPLIT_RATIO`, `SOC_EMPTY`, ...) reflect the author's
-  installation. Adjust them to your hardware sizing.
+  installation. Adjust them to your hardware sizing. The same file also
+  exposes anti-oscillation / liveness tunables that default to neutral:
+  - `DEADZONE_OUTPUT` (W, default `0`): value returned in the dead zone.
+    Set to a small positive number (e.g. `10`) to bias the system into a
+    minimal grid draw and avoid being misread as "meter offline" by
+    EcoFlow firmwares that distrust an exact, persistent `0`.
+  - `DEADZONE_JITTER` (W, default `0`): optional symmetric noise added to
+    `DEADZONE_OUTPUT` on every re-render. `3..5` keeps the value visibly
+    moving so the inverter cannot interpret it as a frozen sensor. Note
+    that this only ticks while *some* upstream sensor still ticks -- the
+    cleaner liveness primitive is a dynamic `agePower`.
+  - `EXPORT_DAMPING` / `IMPORT_DAMPING` (default `1.0`): factor `<= 1.0`
+    applied to the charge / discharge signal. Values like `0.9` tell
+    EcoFlow to undershoot the measured surplus/load so a tiny residual
+    stays on the grid side, preventing limit-cycling around `0`.
+  - `EXPORT_OVERSHOOT` (W, default `0`): the opposite of `EXPORT_DAMPING` --
+    a positive value makes EcoFlow charge *more* than the measured export
+    in order to clear surplus spikes faster, at the cost of brief grid
+    import. Do not combine with `EXPORT_DAMPING < 1.0`.
 
 ## Tested with
 

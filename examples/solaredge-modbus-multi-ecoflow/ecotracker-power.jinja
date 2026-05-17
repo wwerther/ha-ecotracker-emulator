@@ -43,24 +43,77 @@
 {% set SOC_EMPTY           = 5   %}  {# %, below this the house battery is considered empty #}
 {% set SPLIT_RATIO         = 0.5 %}  {# share of load EcoFlow covers when house battery still has charge #}
 
+{# --- Anti-oscillation / liveness tunables --------------------------------- #}
+{# Output value used in the dead zone (CASE 4). Returning exactly 0 forever
+   can be misread by some EcoFlow firmwares as "meter offline" and trigger a
+   fallback heuristic. A small positive value (5..15 W) signals "minimal
+   grid draw" -> EcoFlow trickles a tiny discharge -> creates a tiny export
+   -> meter swings back near zero -> the loop self-stabilises just above 0.
+   Set to 0 to keep the legacy behaviour. #}
+{% set DEADZONE_OUTPUT     = 0   %}  {# W, e.g. 10 to bias the dead zone slightly into import #}
+
+{# Optional symmetric jitter on the dead-zone value (CASE 1b and CASE 4).
+   When > 0, a uniform integer in [-DEADZONE_JITTER, +DEADZONE_JITTER] is
+   added to DEADZONE_OUTPUT every time the template re-renders, so the
+   `power` value never sits at the same number for minutes on end -- which
+   some EcoFlow firmwares treat as a frozen sensor. Caveats:
+     - Only effective while *some* source sensor still ticks; if the whole
+       Modbus pipeline freezes, the template stops re-rendering and the
+       jitter freezes too. The cleaner liveness signal is a dynamic
+       `agePower` (see TODO.md).
+     - Adds zero-mean noise to any Riemann-sum energy integral built on
+       top of the EcoTracker power sensor; harmless on long horizons but
+       visible as fuzz in short-window energy stats.
+   Set to 0 (default) for fully deterministic output. Typical: 3..5. #}
+{% set DEADZONE_JITTER     = 0   %}  {# W, +/- jitter around DEADZONE_OUTPUT #}
+
+{# Damping factor applied to the export-driven charge signal (CASE 1a / 2).
+   Values < 1.0 tell EcoFlow to charge *less* than the measured surplus, so
+   a small surplus is always left in the grid -- this prevents the inverter
+   from overshooting into import and limit-cycling around 0. Range 0.85..1.0
+   is reasonable; 1.0 = no damping. #}
+{% set EXPORT_DAMPING      = 1.0 %}
+
+{# Additional charge bias added on top of the (damped) export signal in
+   CASE 1a / 2. POSITIVE values make EcoFlow charge MORE than the measured
+   export, which deliberately pulls a little extra from the grid in order
+   to clear export spikes faster (e.g. a sudden PV ramp). This is the
+   opposite of EXPORT_DAMPING and they should normally not both be > 0 at
+   once. Watch your import meter when experimenting. Unit: W. #}
+{% set EXPORT_OVERSHOOT    = 0   %}
+
+{# Damping factor applied to the load-driven discharge signal (CASE 3).
+   Values < 1.0 tell EcoFlow to discharge *less* than the measured load,
+   leaving a tiny residual draw on the grid instead of overshooting into
+   export. 1.0 = no damping. #}
+{% set IMPORT_DAMPING      = 1.0 %}
+
 {# ---------------------------------------------------------------------------
    Decision tree
    --------------------------------------------------------------------------- #}
+
+{# Helper: dead-zone value, optionally jittered. Computed once so CASE 1b
+   and CASE 4 emit the same shape. #}
+{% if DEADZONE_JITTER > 0 %}
+  {% set deadzone_value = DEADZONE_OUTPUT + (range(-DEADZONE_JITTER, DEADZONE_JITTER + 1) | random) %}
+{% else %}
+  {% set deadzone_value = DEADZONE_OUTPUT %}
+{% endif %}
 
 {# CASE 1: house battery is actively charging -> EcoFlow must not interfere.
    Exception: if there is real export on top of the charging draw, the surplus
    is genuine and EcoFlow may charge from it (negative value -> charge). #}
 {% if charge_w > CHARGE_THRESHOLD %}
   {% if export_w > EXPORT_THRESHOLD %}
-    {{ (export_w * -1) | round(0) }}
+    {{ (((export_w * EXPORT_DAMPING) + EXPORT_OVERSHOOT) * -1) | round(0) }}
   {% else %}
-    0
+    {{ deadzone_value | round(0) }}
   {% endif %}
 
 {# CASE 2: real PV surplus -> EcoFlow charges with full export
    (negative value = "house exports, EcoFlow may charge"). #}
 {% elif export_w > EXPORT_THRESHOLD %}
-  {{ (export_w * -1) | round(0) }}
+  {{ (((export_w * EXPORT_DAMPING) + EXPORT_OVERSHOOT) * -1) | round(0) }}
 
 {# CASE 3: load on the house side (grid import OR house-battery discharging)
    -> EcoFlow discharges (positive value = "house imports, EcoFlow help"). #}
@@ -68,13 +121,13 @@
   {% set total_load = import_w + discharge_w %}
   {% if battery_soc <= SOC_EMPTY %}
     {# House battery empty -> EcoFlow covers 100 % of the load #}
-    {{ total_load | round(0) }}
+    {{ (total_load * IMPORT_DAMPING) | round(0) }}
   {% else %}
     {# House battery still has capacity -> share the load with EcoFlow #}
-    {{ (total_load * SPLIT_RATIO) | round(0) }}
+    {{ (total_load * SPLIT_RATIO * IMPORT_DAMPING) | round(0) }}
   {% endif %}
 
-{# CASE 4: dead zone -> idle #}
+{# CASE 4: dead zone -> idle (or a small liveness bias, see DEADZONE_OUTPUT) #}
 {% else %}
-  0
+  {{ deadzone_value | round(0) }}
 {% endif %}
