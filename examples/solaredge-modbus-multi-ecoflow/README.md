@@ -186,3 +186,140 @@ effort:
 | EcoTracker emulator | 0.1.0 |
 | EcoFlow Stream Ultra X firmware | V1.0.2.1 |
 | SolarEdge Modbus Multi | latest as of 2026-05 |
+
+## Lessons learned (2026-05) — read this before tuning anything
+
+The original version of this scenario assumed that the EcoFlow Stream Ultra X
+would politely follow the aggregate `power` value coming from `/v1/json`,
+just like the EcoTracker spec implies. **It does not.** Two days of live
+debugging surfaced a handful of properties of the Stream Ultra X firmware
+that the manufacturer documents nowhere and that completely change how the
+emulator must be wired into a SolarEdge installation. Capturing them here so
+nobody else has to re-derive them from scratch.
+
+### 1. Per-phase values dominate over the aggregate
+
+When all four power keys (`power`, `powerAvg`, `powerPhase1..3`) are present,
+the inverter regulates **primarily on the per-phase values**. Two observed
+events:
+
+- Aggregate `power = -1 W`, phases summing to `-474 W` (export-dominated) →
+  Stream Ultra X **charged with ~600 W**, in line with the per-phase export
+  but far above what the aggregate would justify.
+- Aggregate `power = -11 W`, `powerAvg = +89 W`, phase sum `+88 W` →
+  Stream Ultra X **discharged with ~800 W**, again driven by the per-phase
+  picture, not by the much smaller `power` value.
+
+Practical consequence: **you cannot keep the inverter calm by tuning only
+the aggregate**. Either omit `powerPhase1..3` (let the firmware fall back to
+the aggregate) or steer every phase deliberately.
+
+### 2. Per-phase sensors must use EcoTracker convention, not SunSpec
+
+`sensor.solaredge_m1_ac_power_a/_b/_c` from `solaredge-modbus-multi` follow
+the **SunSpec** convention: `positive = export`. The EcoTracker JSON spec
+uses the **inverse** convention for `powerPhase*`: `positive = import,
+negative = feed-in`. Wiring raw SunSpec phase sensors straight into the
+options flow (as the older revisions of this README recommended!) sign-flips
+the per-phase information and causes the inverter to interpret a healthy
+export as a heavy import — full discharge. Use one of:
+
+- `sensor.localtibber_010024/38/4c0700ff` (SML / Tibber Pulse already uses
+  the EcoTracker convention) — the cleanest source if you have a Tibber
+  Pulse, *and* it also solves the closed-loop problem from §3 below.
+- Inverted SolarEdge helpers (`* -1` template per phase).
+- Omit `powerPhase1..3` entirely and rely on `power` only (matches §1).
+
+### 3. The biggest one: closed-loop vs. open-loop meter placement
+
+The Stream Ultra X behaves as a **negative-feedback regulator** that
+expects the reported meter to be the **net grid-coupling-point reading**,
+i.e. the meter value *after* the EcoFlow's own contribution has been
+subtracted. That is exactly where a physical EcoTracker would be installed.
+
+If the sensor you feed into `power` does **not** see the EcoFlow's own
+output (typical for an inverter-side SolarEdge meter that sits upstream of
+the EcoFlow's injection point, or for any meter installed on the PV side
+only), the regulator loop is broken:
+
+```
+EcoFlow injects 400 W   →   "meter" still shows +400 W import (unchanged)
+        ↑                            ↓
+"there is still import" ←   "I need to inject more"
+```
+
+The inverter ramps to maximum until it hits a current/thermal limit. That
+is the symptom "EcoFlow runs to max charge/discharge for no apparent
+reason". Two ways to close the loop:
+
+- **Physical (recommended):** make sure the sensor you map to `power`
+  actually measures the grid coupling point. Tibber Pulse on the utility
+  SML meter does this natively; that is why mapping `localtibber_…`
+  immediately stabilises the system in our tests.
+- **Synthetic (works with any upstream meter):** subtract the EcoFlow's
+  reported output power from the meter reading and feed the difference
+  as `power`:
+
+  ```text
+  virtual_meter = solaredge_meter − ecoflow_output_w
+  ```
+
+  This requires a HA sensor that reports the EcoFlow's instantaneous AC
+  output (e.g. from `hassio-ecoflow-cloud` or the official EcoFlow
+  integration). Mind the **latency** of the upstream source — cloud
+  integrations with > 10 s update intervals produce a sluggish loop that
+  overshoots and oscillates. A local MQTT/BLE source is strongly
+  preferred.
+
+This is also a strong hint that the emulator itself should grow a
+"self-output compensation" option (track this in [`TODO.md`](../../TODO.md)
+under Future enhancements).
+
+### 4. Stale data triggers fallback modes, not graceful degradation
+
+Several non-obvious states put the Stream Ultra X into a default
+charge/discharge mode that **ignores the meter completely** until the
+condition clears:
+
+- `energyCounterIn = energyCounterOut = 0` for an extended period — looks
+  like an uninitialised meter to the firmware; the inverter falls back to
+  internal defaults (observed at ~580 W charge / ~800 W discharge).
+- Persistent zero/jittering-around-zero `power` with no movement on the
+  energy counters — same fallback.
+- A configuration mismatch in the EcoFlow app (operating mode set to
+  "AC Charging", "Time-of-Use", or "Manual" instead of
+  "Self-Consumption") — the meter is ignored on purpose.
+- Stream Ultra X SoC below its low-cut-off — the firmware refuses to
+  discharge regardless of meter readings.
+
+If you see the inverter sitting at a suspiciously round wattage that does
+not react to changes in `/v1/json`, **check the app first**, before touching
+the template.
+
+### 5. What "self-stabilising" actually looks like
+
+Once meter placement is correct (§3), the inverter follows the meter
+linearly. Concretely, ramping `power` from `+200 W` to `+400 W` in
+discrete 50 W steps should produce a matching ramp in EcoFlow output power
+within one or two polling cycles, with a small residual import of a few
+watts at steady state (the EcoFlow under-shoots slightly to avoid
+overshooting into export). If you see anything else — step changes from 0
+to max, or constant output regardless of meter value — you are still in
+fallback mode (§4) or open-loop (§3).
+
+### 6. What we still do not know
+
+- **Exact weighting** between `power`, `powerAvg` and per-phase values in
+  the Stream Ultra X firmware. We have qualitative evidence that phases
+  dominate but no documented decision rule.
+- **`agePower` semantics.** The real device emits values around `496 ms`
+  in the captured trace, consistent with "age of the last measurement in
+  milliseconds". Whether (and how aggressively) the Stream Ultra X uses
+  this field for liveness detection is unknown; experiments needed.
+- **Behaviour with omitted fields.** The spec marks `powerPhase*` and
+  `energyCounterInT*` as optional. Whether the Stream Ultra X tolerates a
+  JSON response without these keys, or whether absence triggers a
+  fallback, has not been verified.
+
+These open questions are tracked in [`../../TODO.md`](../../TODO.md) under
+*EcoFlow Stream Ultra X behaviour — research*.

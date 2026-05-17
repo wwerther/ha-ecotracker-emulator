@@ -69,6 +69,46 @@ _(none currently open)_
 
 ### 🔵 Future enhancements (parking lot)
 
+- [ ] **Self-output compensation (`power` feedback loop).** Real EcoTracker hardware sits
+  at the grid-coupling point and the connected inverter (e.g. EcoFlow Stream Ultra X)
+  behaves as a negative-feedback regulator that expects the meter reading to *include*
+  its own AC contribution. Many HA installs only have a meter upstream of the
+  inverter's injection point (e.g. SolarEdge `m1_ac_power` on the PV side), which
+  breaks the loop and causes the inverter to ramp to its current/thermal limit. The
+  emulator should grow an optional configuration where the user nominates a
+  `self_output_entity` (and unit / sign convention) that the emulator subtracts from
+  each configured `power` / `powerPhase*` value before serving `/v1/json`, turning any
+  upstream meter into a virtual coupling-point meter. See
+  [`examples/solaredge-modbus-multi-ecoflow/README.md`](examples/solaredge-modbus-multi-ecoflow/README.md)
+  → "Lessons learned" §3 for the full diagnosis. Workaround until then: hand-rolled
+  template subtracting the EcoFlow output sensor.
+
+- [ ] **EcoFlow Stream Ultra X behaviour — research.** Several aspects of how the
+  Stream Ultra X consumes the `/v1/json` payload are reverse-engineered guesses; turn
+  them into experiments and document the answers in `docs/api-spec.md` and the example
+  README.
+  - Which of `power`, `powerAvg`, `powerPhase1..3` actually drives the regulation?
+    Qualitative evidence (2026-05) says **per-phase dominates** the aggregate
+    (`power = -1 W` + per-phase summing to `-474 W` → 600 W charge; `power = -11 W`
+    with per-phase summing to `+88 W` → 800 W discharge). Document the exact precedence
+    rule by feeding controlled inputs with conflicting signs across the four fields and
+    logging the inverter's reaction.
+  - What does the Stream Ultra X do if `powerPhase1..3` are **omitted** from the JSON?
+    Falls back to `power`/`powerAvg`? Refuses to regulate? Goes into a default mode?
+  - How does it react to **stale** vs. **live** data? Observed fallback into a default
+    charge/discharge mode (~580 W / ~800 W) when `energyCounterIn`/`Out` stay at `0`
+    forever. Confirm whether monotonically incrementing counters are required, or just
+    non-zero ones.
+  - **`agePower` semantics.** Real device emits values around `496 ms`, consistent with
+    "milliseconds since last measurement". Whether (and how) the Stream Ultra X uses
+    this field for liveness detection is unknown. Experiment: emit a static large
+    `agePower` for 10 minutes, observe whether the inverter starts treating the meter
+    as stale.
+  - **Operating-mode interactions.** The inverter ignores the meter entirely in
+    `AC Charging`, `Time-of-Use` and `Manual` modes. Only `Self-Consumption` (or
+    equivalent firmware-specific name) honours `/v1/json`. Document which app-side
+    settings are prerequisites for the emulator to take effect.
+
 - [ ] **Per-client profiles ("virtual meter instances").** Serve different payloads on
   the same `/v1/json` endpoint depending on the requesting client's IP, so several
   systems (e.g. two EcoFlow inverters that should each see a different subset of
