@@ -129,6 +129,78 @@ do their job. The architecture is correct *because* it is simple.
   isn't acceptable for you, run the bidirectional SolarEdge-Modbus scenario
   and accept its complexity.
 
+## Open flank: hybrid-battery → EcoFlow energy shuttling
+
+Even though the EcoFlow rarely *competes* for PV surplus (the hybrid
+inverter wins that race), there is a subtler failure mode at night when
+both batteries hold charge. Mechanism:
+
+```
+Load:        100 W
+Hybrid bat.: overshoots its own zero-target → discharges 200 W
+             (most regulators don't sit perfectly at 0; small persistent
+              bias toward the export side is common)
+Tibber sees: 100 − 200 = −100 W   → "export"
+EcoFlow reads Tibber → enters charge mode → pulls +100 W from grid
+Tibber new:  100 − 200 − (−100) = 0   → equilibrium
+```
+
+Net result: the **hybrid battery supplies 200 W**, 100 W reach the load,
+**100 W end up in the EcoFlow battery** — with conversion losses on both
+sides (~85 % × ~85 % ≈ **27 % round-trip loss**). The hybrid battery
+drains roughly twice as fast as the load alone would explain, and the
+"saved" energy reappears in the EcoFlow at a discount.
+
+Three conditions must all hold for this to happen:
+
+1. The hybrid inverter persistently overshoots zero by some amount
+   (or pulses around it with a downward bias). Many installs are clean
+   enough that this is undetectable; some firmwares / CT orientations
+   make it visible. Check by watching Localtibber `power` for a few
+   minutes with PV idle and no controllable load.
+2. The Stream Ultra X accepts AC-charging in Self-Consumption mode (the
+   default). See mitigation 1 below.
+3. The EcoFlow's own SoC is below 100 %, so it has room to charge.
+
+### Mitigations, cheapest first
+
+1. **EcoFlow app: disable AC-charging if available.** Some Stream Ultra X
+   firmwares expose a "Solar only" / "No grid charging" toggle that makes
+   the inverter ignore negative `power` values entirely. If this option
+   exists on your firmware revision, **this is the clean fix** — single
+   source of truth, no template, no physical switch. Whether it exists
+   for the Stream Ultra X specifically is open
+   ([TODO.md](../../TODO.md) research item).
+
+2. **Hybrid inverter: raise the minimum-SoC reserve** (e.g. 10–20 %).
+   Doesn't prevent the phenomenon but caps the worst-case shuttling
+   window: once the hybrid battery hits its reserve floor it stops
+   discharging, and the system reverts to "Tibber sees real import →
+   EcoFlow takes over" — which is exactly the intended scenario.
+
+3. **Physical interrupt on the EcoFlow AC input** (e.g. a Shelly Plug or
+   relay on the inverter's grid connection, automated from HA based on
+   `localtibber_power < export_threshold`). Heavy-handed but absolutely
+   guaranteed: no AC connection, no charge possible. Adds wear on the
+   relay if it cycles often, so combine with a generous hysteresis.
+
+4. **Out-of-band visibility on the EcoFlow itself.** Until the Stream
+   Ultra X exposes its AC import/export to HA (cloud API, local BLE
+   pairing, or a clamp-on energy meter like a Shelly EM/Pro 3EM on the
+   inverter's AC lead), you are flying blind: there is no way to tell
+   from inside HA whether the inverter is charging from the grid right
+   now. Adding such a sensor — even if only for visibility — should
+   probably come before any of the active mitigations above.
+
+What we explicitly do **not** recommend: re-introducing a clamp template
+on `power` alone. The Stream Ultra X weights per-phase values more heavily
+than the aggregate, so the clamp would offer false reassurance while
+shuttling continues to leak through the per-phase fields. Per-phase
+clamping in turn brings back the ghost-export bug that was the original
+reason this folder lost its templates. The current "no templates"
+baseline is the honest position; close the open flank above the meter
+layer (app setting / SoC reserve / physical relay), not below it.
+
 ## What we still don't know about the Stream Ultra X regulator
 
 The behavior described above is reverse-engineered from observation, not

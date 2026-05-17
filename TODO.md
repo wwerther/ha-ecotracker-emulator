@@ -124,6 +124,26 @@ _(none currently open)_
     `power = −3`, internally consistent), the inverter follows the saldo and stays
     idle. Confirms per-phase dominance *and* hints at an internal consistency check
     (large mismatch between `Σ powerPhase` and `power` may trigger fallback).
+  - **Can AC-charging be disabled in Self-Consumption mode?** Open question for the
+    Stream Ultra X specifically. If a "Solar only" / "No grid charging" toggle exists
+    in the firmware/app, it is the clean fix for the hybrid-battery → EcoFlow energy-
+    shuttling problem documented in
+    [`examples/localtibber-discharge-only-ecoflow/README.md`](examples/localtibber-discharge-only-ecoflow/README.md)
+    → "Open flank". Without it, the only mitigations are SoC reserve on the hybrid
+    inverter side or a physical AC interrupt (Shelly Plug/relay) — neither is great.
+    Check firmware revision V1.0.2.1 and any newer release notes; if absent, file a
+    feature request with EcoFlow.
+  - **EcoFlow output visibility.** Independent of the regulation question, we need a
+    way to read the Stream Ultra X's actual AC import/export from HA. Options to
+    evaluate:
+    - **EcoFlow Cloud HA integration** (currently failing for the author 2026-05-17 —
+      reason unknown; document what works and doesn't).
+    - **Local BLE pairing** (some EcoFlow devices expose a BLE protocol; check whether
+      the Stream Ultra X does and whether any community decoder exists).
+    - **Clamp-on energy meter** on the inverter's AC lead (Shelly EM / Pro 3EM,
+      Shelly Plug for single-circuit). Cheapest, most reliable, but adds hardware.
+    Either of these would also unlock the future "self-output compensation" emulator
+    feature listed earlier in this section.
 
 - [ ] **Per-client profiles ("virtual meter instances").** Serve different payloads on
   the same `/v1/json` endpoint depending on the requesting client's IP, so several
