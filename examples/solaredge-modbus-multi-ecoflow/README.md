@@ -3,6 +3,17 @@
 End-to-end example that turns a SolarEdge inverter + house battery setup into a
 power signal for an **EcoFlow Stream Ultra X** paired with this emulator.
 
+> ⚠️ **Before adopting this scenario, work through
+> [`VERIFICATION.md`](VERIFICATION.md).** The sign conventions assumed here
+> follow the SunSpec / official upstream wiki convention
+> (`solaredge_m1_ac_power > 0 = export`, `solaredge_b1_dc_power > 0 = charging`)
+> and were confirmed on the author's installation. Some SolarEdge firmwares
+> / CT-clamp orientations invert the m1 sign; in that case point the helpers
+> at `sensor.solaredge_m1_ac_power_inverted` (also exposed by the
+> integration) or flip the `min` / `max` operators in `helpers.yaml`. The
+> checklist walks you through verifying the helpers under load and under PV
+> surplus before EcoFlow starts regulating against them.
+
 ## Setup
 
 - **PV / inverter:** SolarEdge SE series, read via the
@@ -117,15 +128,18 @@ effort:
 ## Caveats
 
 - **Sign convention -- verify on your installation.** This example assumes
-  the SolarEdge convention `sensor.solaredge_m1_ac_power > 0 = import` /
-  `< 0 = export` and `sensor.solaredge_b1_dc_power > 0 = charging` /
-  `< 0 = discharging`, which matches an SE-series inverter as of 2026-05.
+  the SunSpec / official-wiki convention
+  `sensor.solaredge_m1_ac_power > 0 = export` / `< 0 = import` and
+  `sensor.solaredge_b1_dc_power > 0 = charging` / `< 0 = discharging`, which
+  matches an SE-series inverter as of 2026-05.
   **Before you trust the helpers, check it on your own system**: pick a
-  moment with known direction (e.g. at night under load -> import is
-  positive, midday with surplus -> export is negative) and confirm the raw
-  Modbus sensor sign matches what the table in
-  [`source-entities.md`](source-entities.md) claims. If yours is inverted,
-  swap the `min` / `max` operators in `helpers.yaml`.
+  moment with known direction (e.g. midday with PV surplus -> export is
+  positive, at night under load -> import is positive on the
+  `se_power_grid_import` helper) and confirm the raw Modbus sensor sign
+  matches what the table in [`source-entities.md`](source-entities.md)
+  claims. If yours is inverted, either swap the `min` / `max` operators in
+  `helpers.yaml` or point the helpers at
+  `sensor.solaredge_m1_ac_power_inverted`.
 - **EcoTracker JSON sign convention** (consumed by EcoFlow): positive
   `power` value = grid import / inverter should discharge, negative value =
   grid export / inverter may charge. The EcoFlow Stream Ultra X uses the

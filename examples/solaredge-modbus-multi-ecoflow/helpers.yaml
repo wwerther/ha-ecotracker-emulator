@@ -4,12 +4,22 @@
 # readings into strictly non-negative, well-named values for the EcoTracker
 # decision template (ecotracker-power.jinja).
 #
-# Sign convention (SolarEdge Modbus Multi, verified against an SE-series
-# inverter on 2026-05):
-#   sensor.solaredge_m1_ac_power     -> + import (grid -> house), - export
+# Sign convention (SolarEdge Modbus Multi, SunSpec / official wiki, also
+# verified against an SE-series inverter on 2026-05):
+#   sensor.solaredge_m1_ac_power     -> + export (PV -> grid), - import
 #   sensor.solaredge_b1_dc_power     -> + charging, - discharging
-# (If your installation reports the inverse convention, swap the min/max
-# operators in the Grid Import / Grid Export helpers below.)
+#
+# The integration also exposes `sensor.solaredge_m1_ac_power_inverted`
+# (and `..._i1_m1_ac_power_inverted`) for users who prefer the inverse
+# convention (+ = import). The helpers below stick to the SunSpec default.
+#
+# If your installation reports the inverse m1 convention (some firmwares
+# / CT-clamp orientations), either:
+#   - swap the min/max operators in the Grid Import / Grid Export helpers
+#     below, or
+#   - point the helpers at `sensor.solaredge_m1_ac_power_inverted` instead.
+#
+# Always run Phase 1 / Phase 2 from VERIFICATION.md before going live.
 # We split each into two non-negative halves so the downstream template stays
 # sign-agnostic.
 #
@@ -32,6 +42,7 @@
 
     # ---------------------------------------------------------------------
     # Grid: split the signed meter reading into import / export halves
+    # SunSpec convention: m1 > 0 = export, m1 < 0 = import.
     # ---------------------------------------------------------------------
     - name: SE Power Grid Import
       unit_of_measurement: W
@@ -39,7 +50,7 @@
       state_class: measurement
       availability: "{{ has_value('sensor.solaredge_m1_ac_power') }}"
       state: >
-        {{ max([float(states('sensor.solaredge_m1_ac_power'), 0), 0]) }}
+        {{ min([float(states('sensor.solaredge_m1_ac_power'), 0), 0]) | abs }}
 
     - name: SE Power Grid Export
       unit_of_measurement: W
@@ -47,7 +58,7 @@
       state_class: measurement
       availability: "{{ has_value('sensor.solaredge_m1_ac_power') }}"
       state: >
-        {{ min([float(states('sensor.solaredge_m1_ac_power'), 0), 0]) | abs }}
+        {{ max([float(states('sensor.solaredge_m1_ac_power'), 0), 0]) }}
 
     # ---------------------------------------------------------------------
     # House battery: split signed DC power into charging / discharging halves

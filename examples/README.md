@@ -10,12 +10,14 @@ Each subfolder is a self-contained scenario with:
 - `helpers.yaml` -- ready-to-paste template helpers
 - `ecotracker-<field>.jinja` -- the final template per EcoTracker JSON field
   (`power`, `powerPhase1`, ...)
+- `VERIFICATION.md` (when present) -- sign-convention and sanity checks the
+  reader **must** run before relying on the scenario in production
 
 ## Available scenarios
 
-| Folder | Source | Target device |
-|--------|--------|---------------|
-| [solaredge-modbus-multi-ecoflow](solaredge-modbus-multi-ecoflow/) | SolarEdge SE inverter + house battery via Modbus | EcoFlow Stream Ultra X |
+| Folder | Source | Target device | Verification status |
+|--------|--------|---------------|---------------------|
+| [solaredge-modbus-multi-ecoflow](solaredge-modbus-multi-ecoflow/) | SolarEdge SE inverter + house battery via Modbus | EcoFlow Stream Ultra X | ⚠️ Author migration in progress — see [`VERIFICATION.md`](solaredge-modbus-multi-ecoflow/VERIFICATION.md) before using |
 
 ## Contributing a scenario
 
